@@ -1,61 +1,16 @@
 import 'package:alquran_on_linux/data/content/content_seeder.dart';
+import 'seed_fixtures.dart';
 import 'package:alquran_on_linux/data/content/seed_bundle.dart';
 import 'package:alquran_on_linux/data/content/seed_validator.dart';
 import 'package:alquran_on_linux/data/database/app_database.dart';
 import 'package:alquran_on_linux/data/repositories/drift_content_repository.dart';
 import 'package:alquran_on_linux/domain/entities/ayah.dart';
 import 'package:alquran_on_linux/domain/entities/content_manifest.dart';
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Synthetic bundle: 3 surahs x 3 verses. ASCII markers only — structurally
-/// valid, obviously not real content.
-SeedBundle syntheticBundle() {
-  SeedSurah surah(int n) => SeedSurah(
-    number: n,
-    arabicName: 'سورة $n',
-    latinName: 'Surah $n',
-    verseCount: 3,
-  );
-  return SeedBundle(
-    surahs: [surah(1), surah(2), surah(3)],
-    verses: [
-      for (int s = 1; s <= 3; s++)
-        for (int a = 1; a <= 3; a++)
-          SeedVerse(surah: s, ayah: a, arabic: 'PLACEHOLDER $s:$a'),
-    ],
-    translations: [
-      for (int s = 1; s <= 3; s++)
-        for (int a = 1; a <= 3; a++)
-          SeedTranslationRow(
-            surah: s,
-            ayah: a,
-            editionId: 'synthetic-id',
-            text: 'TRANSLATION $s:$a',
-          ),
-    ],
-    translationEditionId: 'synthetic-id',
-  );
-}
-
-ContentManifest syntheticManifest() => ContentManifest(
-  arabicSource: 'synthetic',
-  arabicEdition: 'synthetic-1',
-  arabicSha256: 'synthetic',
-  translationEditionId: 'synthetic-id',
-  translationVersion: 'synthetic-1',
-  translationSha256: 'synthetic',
-  acquiredAt: DateTime.utc(2026, 10, 9),
-  validationReportRef: 'synthetic-report',
-);
-
-AppDatabase memoryDb() {
-  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
-  addTearDown(db.close);
-  return db;
-}
-
 void main() {
+  arabicOnlyTests();
+
   group('seed validator', () {
     test('accepts a consistent bundle', () {
       expect(
@@ -214,6 +169,74 @@ void main() {
         ),
         throwsA(isA<SeedValidationError>()),
       );
+    });
+  });
+}
+
+void arabicOnlyTests() {
+  group('arabic-only datasets (v1.0)', () {
+    test('validator accepts a bundle without translations', () {
+      expect(
+        validateSeedBundle(
+          syntheticBundle(withTranslation: false),
+          expectedSurahCount: 3,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('manifest requires the translation trio all-or-nothing', () {
+      expect(syntheticManifest(withTranslation: false).hasTranslation, isFalse);
+      expect(
+        () => ContentManifest(
+          arabicSource: 's',
+          arabicEdition: 'e',
+          arabicSha256: 'h',
+          translationEditionId: 'only-edition',
+          acquiredAt: DateTime.utc(2026, 10, 9),
+          validationReportRef: 'r',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('edition id without rows is rejected', () {
+      final SeedBundle base = syntheticBundle(withTranslation: false);
+      final SeedBundle bad = SeedBundle(
+        surahs: base.surahs,
+        verses: base.verses,
+        translations: const [],
+        translationEditionId: 'ghost-id',
+      );
+      expect(
+        validateSeedBundle(bad, expectedSurahCount: 3),
+        anyElement(contains('no translation rows')),
+      );
+    });
+
+    test('arabic-only seed serves verses with null translations', () async {
+      final AppDatabase db = memoryDb();
+      final repo = DriftQuranContentRepository(db);
+
+      await seedContent(
+        db,
+        syntheticBundle(withTranslation: false),
+        syntheticManifest(withTranslation: false),
+        expectedSurahCount: 3,
+      );
+
+      final verses = await repo.getAyahs(1);
+      expect(verses.map((v) => v.key.ayahNumber), [1, 2, 3]);
+      expect(
+        await repo.getTranslation(
+          const AyahKey(surahNumber: 1, ayahNumber: 1),
+          'any-edition',
+        ),
+        isNull,
+      );
+      final manifest = await repo.getManifest();
+      expect(manifest.hasTranslation, isFalse);
+      expect(manifest.translationEditionId, isNull);
     });
   });
 }

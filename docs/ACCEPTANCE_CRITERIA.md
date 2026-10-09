@@ -77,7 +77,8 @@ repository documentation.
 -   [ ] Long surahs and small window sizes do not make navigation
     inaccessible.
 -   [ ] Translation text is associated with the correct ayah and
-    edition.
+    edition (v1.1; v1.0 is Arabic-only per owner decision 2026-10-09 and
+    must hide — never fake — the translation block).
 -   [ ] Source and edition credits are accessible in the application.
 
 ### Offline operation

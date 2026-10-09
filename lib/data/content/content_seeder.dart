@@ -25,7 +25,10 @@ Future<void> seedContent(
   ContentManifest manifest, {
   int expectedSurahCount = 114,
 }) async {
-  if (manifest.translationEditionId != bundle.translationEditionId) {
+  // Translation-less (Arabic-only) bundles are valid in v1.0; when rows
+  // exist, the manifest and bundle editions must agree.
+  if (bundle.translations.isNotEmpty &&
+      manifest.translationEditionId != bundle.translationEditionId) {
     throw SeedValidationError([
       'Manifest edition ${manifest.translationEditionId} does not match '
           'bundle edition ${bundle.translationEditionId}.',
@@ -63,15 +66,17 @@ Future<void> seedContent(
             arabicText: verse.arabic,
           ),
       ]);
-      batch.insertAll(db.ayahTranslations, [
-        for (final SeedTranslationRow row in bundle.translations)
-          AyahTranslationsCompanion.insert(
-            surahNumber: row.surah,
-            ayahNumber: row.ayah,
-            editionId: row.editionId,
-            translationText: row.text,
-          ),
-      ]);
+      if (bundle.translations.isNotEmpty) {
+        batch.insertAll(db.ayahTranslations, [
+          for (final SeedTranslationRow row in bundle.translations)
+            AyahTranslationsCompanion.insert(
+              surahNumber: row.surah,
+              ayahNumber: row.ayah,
+              editionId: row.editionId,
+              translationText: row.text,
+            ),
+        ]);
+      }
       batch.insert(
         db.contentMeta,
         ContentMetaCompanion.insert(
@@ -79,9 +84,9 @@ Future<void> seedContent(
           arabicSource: manifest.arabicSource,
           arabicEdition: manifest.arabicEdition,
           arabicSha256: manifest.arabicSha256,
-          translationEditionId: manifest.translationEditionId,
-          translationVersion: manifest.translationVersion,
-          translationSha256: manifest.translationSha256,
+          translationEditionId: Value(manifest.translationEditionId),
+          translationVersion: Value(manifest.translationVersion),
+          translationSha256: Value(manifest.translationSha256),
           acquiredAt: manifest.acquiredAt,
           validationReportRef: manifest.validationReportRef,
         ),

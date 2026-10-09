@@ -4,6 +4,11 @@
 > `docs/phase-0-report.md` §6 and `docs/data-sources.md` §2.6). Phase 2
 > content work must not start until the checklist in §1 is fully signed off,
 > or written LPMQ permission (§2) is obtained.
+>
+> Owner decision 2026-10-09 (Option 1): v1.0 ships **Arabic-only**; the
+> translation checklist below now gates **v1.1**. The seed pipeline,
+> validator, manifest, and credits view support translation-less datasets,
+> and adding the cleared translation later must preserve user state.
 
 ## 1. QuranEnc edition-confirmation checklist
 

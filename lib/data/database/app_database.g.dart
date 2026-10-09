@@ -1561,9 +1561,9 @@ class $ContentMetaTable extends ContentMeta
       GeneratedColumn<String>(
         'translation_edition_id',
         aliasedName,
-        false,
+        true,
         type: DriftSqlType.string,
-        requiredDuringInsert: true,
+        requiredDuringInsert: false,
       );
   static const VerificationMeta _translationVersionMeta =
       const VerificationMeta('translationVersion');
@@ -1572,9 +1572,9 @@ class $ContentMetaTable extends ContentMeta
       GeneratedColumn<String>(
         'translation_version',
         aliasedName,
-        false,
+        true,
         type: DriftSqlType.string,
-        requiredDuringInsert: true,
+        requiredDuringInsert: false,
       );
   static const VerificationMeta _translationSha256Meta = const VerificationMeta(
     'translationSha256',
@@ -1584,9 +1584,9 @@ class $ContentMetaTable extends ContentMeta
       GeneratedColumn<String>(
         'translation_sha256',
         aliasedName,
-        false,
+        true,
         type: DriftSqlType.string,
-        requiredDuringInsert: true,
+        requiredDuringInsert: false,
       );
   static const VerificationMeta _acquiredAtMeta = const VerificationMeta(
     'acquiredAt',
@@ -1678,8 +1678,6 @@ class $ContentMetaTable extends ContentMeta
           _translationEditionIdMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_translationEditionIdMeta);
     }
     if (data.containsKey('translation_version')) {
       context.handle(
@@ -1689,8 +1687,6 @@ class $ContentMetaTable extends ContentMeta
           _translationVersionMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_translationVersionMeta);
     }
     if (data.containsKey('translation_sha256')) {
       context.handle(
@@ -1700,8 +1696,6 @@ class $ContentMetaTable extends ContentMeta
           _translationSha256Meta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_translationSha256Meta);
     }
     if (data.containsKey('acquired_at')) {
       context.handle(
@@ -1750,15 +1744,15 @@ class $ContentMetaTable extends ContentMeta
       translationEditionId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}translation_edition_id'],
-      )!,
+      ),
       translationVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}translation_version'],
-      )!,
+      ),
       translationSha256: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}translation_sha256'],
-      )!,
+      ),
       acquiredAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}acquired_at'],
@@ -1781,9 +1775,9 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
   final String arabicSource;
   final String arabicEdition;
   final String arabicSha256;
-  final String translationEditionId;
-  final String translationVersion;
-  final String translationSha256;
+  final String? translationEditionId;
+  final String? translationVersion;
+  final String? translationSha256;
   final DateTime acquiredAt;
   final String validationReportRef;
   const ContentMetaData({
@@ -1791,9 +1785,9 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
     required this.arabicSource,
     required this.arabicEdition,
     required this.arabicSha256,
-    required this.translationEditionId,
-    required this.translationVersion,
-    required this.translationSha256,
+    this.translationEditionId,
+    this.translationVersion,
+    this.translationSha256,
     required this.acquiredAt,
     required this.validationReportRef,
   });
@@ -1804,9 +1798,15 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
     map['arabic_source'] = Variable<String>(arabicSource);
     map['arabic_edition'] = Variable<String>(arabicEdition);
     map['arabic_sha256'] = Variable<String>(arabicSha256);
-    map['translation_edition_id'] = Variable<String>(translationEditionId);
-    map['translation_version'] = Variable<String>(translationVersion);
-    map['translation_sha256'] = Variable<String>(translationSha256);
+    if (!nullToAbsent || translationEditionId != null) {
+      map['translation_edition_id'] = Variable<String>(translationEditionId);
+    }
+    if (!nullToAbsent || translationVersion != null) {
+      map['translation_version'] = Variable<String>(translationVersion);
+    }
+    if (!nullToAbsent || translationSha256 != null) {
+      map['translation_sha256'] = Variable<String>(translationSha256);
+    }
     map['acquired_at'] = Variable<DateTime>(acquiredAt);
     map['validation_report_ref'] = Variable<String>(validationReportRef);
     return map;
@@ -1818,9 +1818,15 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
       arabicSource: Value(arabicSource),
       arabicEdition: Value(arabicEdition),
       arabicSha256: Value(arabicSha256),
-      translationEditionId: Value(translationEditionId),
-      translationVersion: Value(translationVersion),
-      translationSha256: Value(translationSha256),
+      translationEditionId: translationEditionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(translationEditionId),
+      translationVersion: translationVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(translationVersion),
+      translationSha256: translationSha256 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(translationSha256),
       acquiredAt: Value(acquiredAt),
       validationReportRef: Value(validationReportRef),
     );
@@ -1836,13 +1842,15 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
       arabicSource: serializer.fromJson<String>(json['arabicSource']),
       arabicEdition: serializer.fromJson<String>(json['arabicEdition']),
       arabicSha256: serializer.fromJson<String>(json['arabicSha256']),
-      translationEditionId: serializer.fromJson<String>(
+      translationEditionId: serializer.fromJson<String?>(
         json['translationEditionId'],
       ),
-      translationVersion: serializer.fromJson<String>(
+      translationVersion: serializer.fromJson<String?>(
         json['translationVersion'],
       ),
-      translationSha256: serializer.fromJson<String>(json['translationSha256']),
+      translationSha256: serializer.fromJson<String?>(
+        json['translationSha256'],
+      ),
       acquiredAt: serializer.fromJson<DateTime>(json['acquiredAt']),
       validationReportRef: serializer.fromJson<String>(
         json['validationReportRef'],
@@ -1857,9 +1865,9 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
       'arabicSource': serializer.toJson<String>(arabicSource),
       'arabicEdition': serializer.toJson<String>(arabicEdition),
       'arabicSha256': serializer.toJson<String>(arabicSha256),
-      'translationEditionId': serializer.toJson<String>(translationEditionId),
-      'translationVersion': serializer.toJson<String>(translationVersion),
-      'translationSha256': serializer.toJson<String>(translationSha256),
+      'translationEditionId': serializer.toJson<String?>(translationEditionId),
+      'translationVersion': serializer.toJson<String?>(translationVersion),
+      'translationSha256': serializer.toJson<String?>(translationSha256),
       'acquiredAt': serializer.toJson<DateTime>(acquiredAt),
       'validationReportRef': serializer.toJson<String>(validationReportRef),
     };
@@ -1870,9 +1878,9 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
     String? arabicSource,
     String? arabicEdition,
     String? arabicSha256,
-    String? translationEditionId,
-    String? translationVersion,
-    String? translationSha256,
+    Value<String?> translationEditionId = const Value.absent(),
+    Value<String?> translationVersion = const Value.absent(),
+    Value<String?> translationSha256 = const Value.absent(),
     DateTime? acquiredAt,
     String? validationReportRef,
   }) => ContentMetaData(
@@ -1880,9 +1888,15 @@ class ContentMetaData extends DataClass implements Insertable<ContentMetaData> {
     arabicSource: arabicSource ?? this.arabicSource,
     arabicEdition: arabicEdition ?? this.arabicEdition,
     arabicSha256: arabicSha256 ?? this.arabicSha256,
-    translationEditionId: translationEditionId ?? this.translationEditionId,
-    translationVersion: translationVersion ?? this.translationVersion,
-    translationSha256: translationSha256 ?? this.translationSha256,
+    translationEditionId: translationEditionId.present
+        ? translationEditionId.value
+        : this.translationEditionId,
+    translationVersion: translationVersion.present
+        ? translationVersion.value
+        : this.translationVersion,
+    translationSha256: translationSha256.present
+        ? translationSha256.value
+        : this.translationSha256,
     acquiredAt: acquiredAt ?? this.acquiredAt,
     validationReportRef: validationReportRef ?? this.validationReportRef,
   );
@@ -1964,9 +1978,9 @@ class ContentMetaCompanion extends UpdateCompanion<ContentMetaData> {
   final Value<String> arabicSource;
   final Value<String> arabicEdition;
   final Value<String> arabicSha256;
-  final Value<String> translationEditionId;
-  final Value<String> translationVersion;
-  final Value<String> translationSha256;
+  final Value<String?> translationEditionId;
+  final Value<String?> translationVersion;
+  final Value<String?> translationSha256;
   final Value<DateTime> acquiredAt;
   final Value<String> validationReportRef;
   const ContentMetaCompanion({
@@ -1985,17 +1999,14 @@ class ContentMetaCompanion extends UpdateCompanion<ContentMetaData> {
     required String arabicSource,
     required String arabicEdition,
     required String arabicSha256,
-    required String translationEditionId,
-    required String translationVersion,
-    required String translationSha256,
+    this.translationEditionId = const Value.absent(),
+    this.translationVersion = const Value.absent(),
+    this.translationSha256 = const Value.absent(),
     required DateTime acquiredAt,
     required String validationReportRef,
   }) : arabicSource = Value(arabicSource),
        arabicEdition = Value(arabicEdition),
        arabicSha256 = Value(arabicSha256),
-       translationEditionId = Value(translationEditionId),
-       translationVersion = Value(translationVersion),
-       translationSha256 = Value(translationSha256),
        acquiredAt = Value(acquiredAt),
        validationReportRef = Value(validationReportRef);
   static Insertable<ContentMetaData> custom({
@@ -2029,9 +2040,9 @@ class ContentMetaCompanion extends UpdateCompanion<ContentMetaData> {
     Value<String>? arabicSource,
     Value<String>? arabicEdition,
     Value<String>? arabicSha256,
-    Value<String>? translationEditionId,
-    Value<String>? translationVersion,
-    Value<String>? translationSha256,
+    Value<String?>? translationEditionId,
+    Value<String?>? translationVersion,
+    Value<String?>? translationSha256,
     Value<DateTime>? acquiredAt,
     Value<String>? validationReportRef,
   }) {
@@ -3070,9 +3081,9 @@ typedef $$ContentMetaTableCreateCompanionBuilder =
       required String arabicSource,
       required String arabicEdition,
       required String arabicSha256,
-      required String translationEditionId,
-      required String translationVersion,
-      required String translationSha256,
+      Value<String?> translationEditionId,
+      Value<String?> translationVersion,
+      Value<String?> translationSha256,
       required DateTime acquiredAt,
       required String validationReportRef,
     });
@@ -3082,9 +3093,9 @@ typedef $$ContentMetaTableUpdateCompanionBuilder =
       Value<String> arabicSource,
       Value<String> arabicEdition,
       Value<String> arabicSha256,
-      Value<String> translationEditionId,
-      Value<String> translationVersion,
-      Value<String> translationSha256,
+      Value<String?> translationEditionId,
+      Value<String?> translationVersion,
+      Value<String?> translationSha256,
       Value<DateTime> acquiredAt,
       Value<String> validationReportRef,
     });
@@ -3287,9 +3298,9 @@ class $$ContentMetaTableTableManager
                 Value<String> arabicSource = const Value.absent(),
                 Value<String> arabicEdition = const Value.absent(),
                 Value<String> arabicSha256 = const Value.absent(),
-                Value<String> translationEditionId = const Value.absent(),
-                Value<String> translationVersion = const Value.absent(),
-                Value<String> translationSha256 = const Value.absent(),
+                Value<String?> translationEditionId = const Value.absent(),
+                Value<String?> translationVersion = const Value.absent(),
+                Value<String?> translationSha256 = const Value.absent(),
                 Value<DateTime> acquiredAt = const Value.absent(),
                 Value<String> validationReportRef = const Value.absent(),
               }) => ContentMetaCompanion(
@@ -3309,9 +3320,9 @@ class $$ContentMetaTableTableManager
                 required String arabicSource,
                 required String arabicEdition,
                 required String arabicSha256,
-                required String translationEditionId,
-                required String translationVersion,
-                required String translationSha256,
+                Value<String?> translationEditionId = const Value.absent(),
+                Value<String?> translationVersion = const Value.absent(),
+                Value<String?> translationSha256 = const Value.absent(),
                 required DateTime acquiredAt,
                 required String validationReportRef,
               }) => ContentMetaCompanion.insert(

@@ -73,8 +73,12 @@ cleanly with Linux desktop distribution.
     surah and verse range.
 -   **Arabic typography:** Support Arabic shaping, diacritics,
     bidirectional text, and line wrapping without clipping.
--   **Translation:** Display one Indonesian translation whose
+-   **Translation (v1.1):** Display one Indonesian translation whose
     distribution rights and attribution requirements have been verified.
+    v1.0 ships Arabic-only (owner decision 2026-10-09, Option 1): the reader,
+    validator, seeder, and credits view all support a translation-less
+    dataset, and adding the cleared translation later must not require a
+    reinstall or endanger user state.
 -   **Navigation:** Open a surah and navigate by ayah; show surah and
     ayah identifiers clearly.
 -   **Bookmarks:** Add/remove local bookmarks for ayahs.
@@ -87,7 +91,8 @@ cleanly with Linux desktop distribution.
 -   **Local persistence:** Store user preferences and reading state
     locally.
 -   **Source information:** Provide an in-app content credits/about view
-    that identifies the source and edition of the text and translation.
+    that identifies the source and edition of the text (and of the
+    translation once bundled in v1.1).
 -   **Desktop basics:** Keyboard navigation where practical, resizable
     window, and sensible behavior at common desktop window sizes.
 

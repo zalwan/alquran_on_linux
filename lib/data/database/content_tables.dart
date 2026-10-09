@@ -48,6 +48,7 @@ class AyahTranslations extends Table {
 
 /// Singleton row (id always 1): provenance of the seeded content set.
 /// Seeding without complete manifest fields is rejected upstream.
+/// Translation columns are nullable: v1.0 datasets are Arabic-only.
 class ContentMeta extends Table {
   IntColumn get id => integer()();
 
@@ -57,11 +58,11 @@ class ContentMeta extends Table {
 
   TextColumn get arabicSha256 => text()();
 
-  TextColumn get translationEditionId => text()();
+  TextColumn get translationEditionId => text().nullable()();
 
-  TextColumn get translationVersion => text()();
+  TextColumn get translationVersion => text().nullable()();
 
-  TextColumn get translationSha256 => text()();
+  TextColumn get translationSha256 => text().nullable()();
 
   DateTimeColumn get acquiredAt => dateTime()();
 

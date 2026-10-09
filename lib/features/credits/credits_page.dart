@@ -132,13 +132,21 @@ class _ManifestCard extends StatelessWidget {
               '${manifest.arabicSource} · '
                   '${manifest.arabicEdition} · ${short(manifest.arabicSha256)}',
             ),
-            _line(
-              theme,
-              'Translation',
-              '${manifest.translationEditionId} · '
-                  'v${manifest.translationVersion} · '
-                  '${short(manifest.translationSha256)}',
-            ),
+            if (manifest.translationEditionId != null)
+              _line(
+                theme,
+                'Translation',
+                '${manifest.translationEditionId} · '
+                    'v${manifest.translationVersion} · '
+                    '${short(manifest.translationSha256 ?? '')}',
+              )
+            else
+              _line(
+                theme,
+                'Translation',
+                'Not bundled yet — Arabic-only dataset '
+                    '(see docs/translation-clearance.md).',
+              ),
             _line(theme, 'Validation', manifest.validationReportRef),
           ],
         ),

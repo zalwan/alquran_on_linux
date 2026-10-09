@@ -55,6 +55,8 @@ class SeedBundle {
   final List<SeedVerse> verses;
   final List<SeedTranslationRow> translations;
 
-  /// The single edition every translation row must belong to.
-  final String translationEditionId;
+  /// The single edition every translation row must belong to, or null
+  /// for an Arabic-only bundle (v1.0). Rows without an edition are
+  /// rejected by the validator.
+  final String? translationEditionId;
 }

@@ -76,9 +76,18 @@ List<String> validateSeedBundle(
     }
   }
 
-  // --- Translations ---------------------------------------------------------
-  if (bundle.translationEditionId.isEmpty) {
-    errors.add('Translation edition id is empty.');
+  // --- Translations (optional as a group: v1.0 is Arabic-only) -----------
+  if (bundle.translations.isEmpty) {
+    if (bundle.translationEditionId != null) {
+      errors.add(
+        'Translation edition id is set but there are no translation rows.',
+      );
+    }
+    return errors;
+  }
+  if (bundle.translationEditionId == null ||
+      bundle.translationEditionId!.isEmpty) {
+    errors.add('Translation rows exist but the edition id is missing.');
   }
   final Set<String> translationKeys = {};
   for (final SeedTranslationRow row in bundle.translations) {
