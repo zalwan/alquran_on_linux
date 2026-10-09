@@ -1,27 +1,26 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 
+import 'tables.dart';
+
 part 'app_database.g.dart';
 
-/// Local database skeleton (Phase 1).
-///
-/// Opens the persistence layer and pins the migration contract
-/// (`schemaVersion`). Content tables (surah/ayah/translation) and user-state
-/// tables (bookmarks, reading position) arrive in Phase 2 behind repository
-/// interfaces — see `architecture.md` §4–§6 and ADR-0004.
-@DriftDatabase(tables: [])
+/// Local database: user state only in Phase 2a (bookmarks, last read).
+/// Versioned Quran content tables arrive with the approved dataset — see
+/// `architecture.md` §6 and ADR-0004. Content and user state stay in
+/// separate tables so content updates never endanger user data.
+@DriftDatabase(tables: [Bookmarks, ReadingPositions])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_open());
+  AppDatabase(File file) : super(_open(file));
 
   AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;
 
-  static QueryExecutor _open() {
-    // Production path resolution (path_provider) is wired in Phase 2 when
-    // the first table lands. The in-memory executor keeps this constructor
-    // honest until then and is never used with real user data.
-    return NativeDatabase.memory();
+  static QueryExecutor _open(File file) {
+    return NativeDatabase.createInBackground(file);
   }
 }
