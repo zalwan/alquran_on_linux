@@ -71,10 +71,10 @@ class CreditsPage extends ConsumerWidget {
               'content.',
         ),
         const _SourceRow(
-          title: 'Fonts — pending final choice (ADR-0002)',
+          title: 'Arabic typeface — Amiri (SIL OFL 1.1)',
           detail:
-              'Candidates Amiri, Scheherazade New, Noto Naskh Arabic, '
-              'all SIL OFL 1.1 with license texts shipped alongside.',
+              'Chosen by the rendering spike; bundled with its license '
+              'text and registered in the app license page.',
         ),
         const _SourceRow(
           title: 'App code license — proposed MIT (ADR-0007)',

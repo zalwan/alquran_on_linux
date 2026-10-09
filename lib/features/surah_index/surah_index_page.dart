@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
+import '../../app/theme/app_typography.dart';
 import '../../app/widgets/content_unavailable.dart';
 import '../../domain/entities/surah.dart';
 import '../../domain/repositories/quran_content_repository.dart';
@@ -31,6 +32,14 @@ class SurahIndexPage extends ConsumerWidget {
           return const ContentUnavailable();
         }
         final List<Surah> items = snapshot.data!;
+        if (items.isEmpty) {
+          return const ContentUnavailable(
+            detail:
+                'The content database holds no surahs — first-launch '
+                'seeding may have failed. Bookmarks, theme, and settings '
+                'keep working.',
+          );
+        }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: items.length,
@@ -48,7 +57,9 @@ class SurahIndexPage extends ConsumerWidget {
                 subtitle: Text('${surah.verseCount} verses'),
                 trailing: Text(
                   surah.arabicName,
-                  style: theme.textTheme.titleLarge,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontFamily: AppTypography.arabicFontFamily,
+                  ),
                 ),
                 onTap: () => context.go('${AppRoutes.surahs}/${surah.number}'),
               ),

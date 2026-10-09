@@ -52,4 +52,42 @@ class ContentManifest {
   final String validationReportRef;
 
   bool get hasTranslation => translationEditionId != null;
+
+  /// Reads the committed `data/manifest/manifest.json` shape. Extra keys
+  /// (e.g. file names) are ignored; missing required keys throw.
+  factory ContentManifest.fromJson(Map<String, Object?> json) {
+    String required(String key) {
+      final Object? value = json[key];
+      if (value is! String || value.isEmpty) {
+        throw FormatException('Manifest is missing required key: $key.');
+      }
+      return value;
+    }
+
+    String? optional(String key) {
+      final Object? value = json[key];
+      if (value == null) {
+        return null;
+      }
+      if (value is! String || value.isEmpty) {
+        throw FormatException('Manifest key is not a non-empty string: $key.');
+      }
+      return value;
+    }
+
+    final Object? acquired = json['acquiredAt'];
+    if (acquired is! String) {
+      throw const FormatException('Manifest is missing acquiredAt.');
+    }
+    return ContentManifest(
+      arabicSource: required('arabicSource'),
+      arabicEdition: required('arabicEdition'),
+      arabicSha256: required('arabicSha256'),
+      translationEditionId: optional('translationEditionId'),
+      translationVersion: optional('translationVersion'),
+      translationSha256: optional('translationSha256'),
+      acquiredAt: DateTime.parse(acquired),
+      validationReportRef: required('validationReportRef'),
+    );
+  }
 }

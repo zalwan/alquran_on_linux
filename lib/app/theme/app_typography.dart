@@ -4,6 +4,11 @@
 /// fixes roles and numeric bounds. Arabic sizes are user-adjustable and the
 /// reader must clamp to [arabicVerseMin]–[arabicVerseMax].
 abstract final class AppTypography {
+  /// Bundled Arabic verse typeface (Amiri, SIL OFL 1.1 — see ADR-0002 and
+  /// the spike report). Applied to verse text and Arabic names only; the
+  /// Latin UI keeps the platform default.
+  static const String arabicFontFamily = 'Amiri';
+
   static const double arabicVerseMin = 20;
   static const double arabicVerseMax = 40;
   static const double arabicVerseStep = 2;

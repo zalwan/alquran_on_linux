@@ -40,3 +40,10 @@ Option 3 is deferred (revisit only if QF content path is ever licensed).
 - Amiri (OFL-1.1): <https://github.com/aliftype/amiri>
 - Scheherazade New (OFL-1.1): <https://software.sil.org/scheherazade/>
 - Flutter internationalization/RTL: <https://docs.flutter.dev/ui/internationalization>
+
+## Update 2026-10-09 (font decided)
+
+Amiri (SIL OFL 1.1) selected per the spike verdict
+(`spikes/arabic-rendering/REPORT.md`) and bundled at
+`assets/fonts/Amiri-Regular.ttf` with `OFL-Amiri.txt`, registered via
+`LicenseRegistry`, applied to verse text and Arabic names only.

@@ -38,3 +38,11 @@ written permission.
 - QF developer terms (2026-10-04): <https://api-docs.quran.foundation/legal/developer-terms/>
 - QuranEnc terms: <https://quranenc.com/en/home> ("Terms and Policies")
 - Tanzil translations terms: <https://tanzil.net/trans/>
+
+## Update 2026-10-09 (v1.0 Arabic-only)
+
+Owner approved bundling the Tanzil Uthmani v1.1 Arabic text without the
+translation (Option 1, Arabic-only v1.0). Validation report:
+`docs/validation-reports/2026-10-09-tanzil-uthmani-v1.1.md`. Translation
+work (QuranEnc `indonesian_affairs` v1.0.1 identified, LPMQ letter draft)
+now gates v1.1 only.

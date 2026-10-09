@@ -40,6 +40,8 @@ dependencies:
   path_provider: ^2.1.6
   drift: ^2.35.2
   sqlite3: ^3.5.2
+  xml: ^7.0.1
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
@@ -65,10 +67,22 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    # Approved v1.0 dataset: verbatim Tanzil files + manifest + attribution.
+    # Nothing here may be modified without repeating the validation report.
+    - data/manifest/tanzil-uthmani-v1.1.txt
+    - data/manifest/quran-data-v1.0.xml
+    - data/manifest/manifest.json
+    - data/manifest/ATTRIBUTION.md
+    # OFL license text for the bundled Amiri font (required by the OFL).
+    - assets/fonts/OFL-Amiri.txt
+
+  fonts:
+    # Arabic verse typeface (spike verdict: Amiri — see
+    # spikes/arabic-rendering/REPORT.md). Latin UI keeps the default font.
+    - family: Amiri
+      fonts:
+        - asset: assets/fonts/Amiri-Regular.ttf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

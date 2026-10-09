@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/theme/app_typography.dart';
 import '../../app/widgets/content_unavailable.dart';
 import '../../core/preferences/settings_providers.dart';
 import '../../data/database/database_providers.dart';
@@ -177,6 +178,7 @@ class _VerseCard extends ConsumerWidget {
                   textDirection: TextDirection.rtl,
                   textAlign: TextAlign.right,
                   style: TextStyle(
+                    fontFamily: AppTypography.arabicFontFamily,
                     fontSize: arabicSize,
                     height: 2.0,
                     color: scheme.onSurface,

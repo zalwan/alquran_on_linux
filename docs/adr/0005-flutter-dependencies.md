@@ -24,6 +24,8 @@ Every critical plugin must have verified Linux support before adoption
 | url_launcher | proposed (optional) | 6.3.3, ~2026-10-03, flutter.dev | BSD-3 | yes | yes | Only if "open source link" ships; test under sandbox |
 | audioplayers | deferred | 6.8.1, ~2026-07 | MIT | yes | yes | Do NOT add in Phase 0/1; needs pulseaudio + likely network |
 | google_fonts | dev-convenience only | 9.0.0, flutter.dev | BSD-3 (fonts OFL) | yes | yes | Do NOT runtime-fetch in offline MVP; bundle fonts instead |
+| xml | added 2026-10-09 (metadata parsing) | pure Dart, MIT | MIT | yes | yes | Parses committed Tanzil quran-data.xml; no native deps |
+| crypto | added 2026-10-09 (sha256 verification) | dart-team, BSD-3 | BSD-3 | yes | yes | Verifies committed file hashes in tests; no native deps |
 
 ## Decision
 
