@@ -132,6 +132,29 @@ values may be tuned as long as roles and contrast targets hold.
    `#166534`; the dark version must use the lighter accent
 6. `text-secondary` on `background` (should reach ≥ 4.5:1; darken/lighten until it passes)
 
+#### Measured contrast audit — 2026-10-09
+
+Computed with the WCAG 2.x relative-luminance formula and pinned by
+`test/theme_contrast_test.dart` (fails on any token regression). All pairs
+meet AA body-text contrast (≥ 4.5:1) with margin — no token changes required:
+
+| Pair | Ratio |
+| --- | --- |
+| text-primary / background (light) | 18.05 |
+| text-primary / background (dark) | 15.98 |
+| arabic / background (light) | 17.92 |
+| arabic / highlight (light) | 17.12 |
+| arabic / background (dark) | 15.88 |
+| arabic / highlight (dark) | 8.41 |
+| on-primary / primary (light) | 7.13 |
+| on-primary / primary (dark) | 8.55 |
+| on-container / container (light) | 8.70 |
+| on-container / container (dark) | 8.30 |
+| primary as small text (light) | 7.13 |
+| accent as small text (dark) | 9.88 |
+| secondary / background (light) | 8.89 |
+| secondary / background (dark) | 11.15 |
+
 ## 5. Per-mode schemes (implementation summary)
 
 ### 5.1 Light — "clean, dominantly white"

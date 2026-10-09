@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/bookmarks/bookmarks_page.dart';
+import '../features/credits/credits_page.dart';
 import '../features/home/home_page.dart';
 import '../features/reader/reader_page.dart';
 import '../features/settings/settings_page.dart';
@@ -14,6 +15,7 @@ abstract final class AppRoutes {
   static const String surahs = '/surahs';
   static const String bookmarks = '/bookmarks';
   static const String settings = '/settings';
+  static const String about = '/about';
 
   static String reader(int surahNumber) => '$surahs/$surahNumber';
 }
@@ -23,6 +25,7 @@ final List<({String path, String label, IconData icon})> _destinations = [
   (path: AppRoutes.surahs, label: 'Index', icon: Icons.library_books_outlined),
   (path: AppRoutes.bookmarks, label: 'Bookmarks', icon: Icons.bookmark_border),
   (path: AppRoutes.settings, label: 'Settings', icon: Icons.settings_outlined),
+  (path: AppRoutes.about, label: 'About', icon: Icons.info_outlined),
 ];
 
 GoRouter buildRouter() {
@@ -57,6 +60,10 @@ GoRouter buildRouter() {
           GoRoute(
             path: AppRoutes.settings,
             builder: (context, state) => const SettingsPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.about,
+            builder: (context, state) => const CreditsPage(),
           ),
         ],
       ),
