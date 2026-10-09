@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Alquran
+Comment=Calm offline Quran reader for Linux
+Exec=alquran
+Icon=org.alquran.Reader
+Terminal=false
+Type=Application
+Categories=Education;Utility;
+StartupWMClass=alquran_on_linux

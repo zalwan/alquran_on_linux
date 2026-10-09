@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.alquran.Reader</id>
+  <!-- project_license follows ADR-0007 (MIT proposed, pending owner approval). -->
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Alquran</name>
+  <summary>Calm offline Quran reader for Linux</summary>
+  <description>
+    <p>
+      Alquran is an offline-first Quran reader with Indonesian translation,
+      ayah navigation, bookmarks, and light/dark themes.
+    </p>
+  </description>
+  <launchable type="desktop-id">org.alquran.Reader.desktop</launchable>
+  <url type="homepage">https://example.invalid/alquran</url>
+  <developer><name>Alquran contributors</name></developer>
+  <content_rating type="oars-1.1" />
+</component>

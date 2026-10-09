@@ -1,0 +1,56 @@
+# Flatpak manifest (Phase 1 minimal package).
+#
+# Verified 2026-10-09: org.gnome.Platform//51 and org.gnome.Sdk//51 exist on
+# Flathub; Flutter stable 3.47.7 checksum below is from the official release
+# metadata (https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json).
+#
+# Sandbox build + install + launch have NOT been run yet (SDK download is
+# GB-scale; see packaging README). Before any release, the manifest must be
+# converted to a fully offline form with vendored pub sources via `flutpak`
+# or `flatpak-flutter` — a manifest that runs `flutter pub get` at build
+# time is NOT Flathub-acceptable.
+app-id: org.alquran.Reader
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: alquran
+finish-args:
+  # Display + rendering only. No --share=network (offline reader), no
+  # filesystem, sound, or printing access — see ADR-0006.
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+modules:
+  - name: flutter-sdk
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/flutter && tar xf flutter-sdk.tar.xz -C /app/flutter --strip-components=1
+    sources:
+      - type: archive
+        url: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.7-stable.tar.xz
+        sha256: af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230
+        dest-filename: flutter-sdk.tar.xz
+  - name: alquran
+    buildsystem: simple
+    build-commands:
+      - export PATH=/app/flutter/bin:$PATH
+      - export FLUTTER_SUPPRESS_ANALYTICS=true
+      - flutter --version
+      - flutter config --no-analytics
+      # NOTE: `pub get` needs network at build time. For Flathub submission
+      # this module must be replaced by generated offline sources (flutpak).
+      - flutter pub get
+      - flutter build linux --release
+      - cp -a build/linux/x64/release/bundle/. /app/
+      - install -Dm755 packaging/flatpak/alquran.sh /app/bin/alquran
+      - install -Dm644 packaging/flatpak/org.alquran.Reader.desktop /app/share/applications/org.alquran.Reader.desktop
+      - install -Dm644 packaging/flatpak/org.alquran.Reader.metainfo.xml /app/share/metainfo/org.alquran.Reader.metainfo.xml
+      - install -Dm644 packaging/flatpak/icons/hicolor/scalable/apps/org.alquran.Reader.svg /app/share/icons/hicolor/scalable/apps/org.alquran.Reader.svg
+    sources:
+      - type: dir
+        path: ../..
