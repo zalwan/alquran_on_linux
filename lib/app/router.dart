@@ -3,18 +3,24 @@ import 'package:go_router/go_router.dart';
 
 import '../features/bookmarks/bookmarks_page.dart';
 import '../features/home/home_page.dart';
+import '../features/reader/reader_page.dart';
 import '../features/settings/settings_page.dart';
+import '../features/surah_index/surah_index_page.dart';
 
-/// Route paths. Deep-linking stays trivial in Phase 1; surah/ayah routes
-/// arrive with the Phase 2 reader.
+/// Route paths. Reader routes carry the surah number; surah/ayah deep
+/// details arrive with the Phase 2 content work.
 abstract final class AppRoutes {
   static const String home = '/';
+  static const String surahs = '/surahs';
   static const String bookmarks = '/bookmarks';
   static const String settings = '/settings';
+
+  static String reader(int surahNumber) => '$surahs/$surahNumber';
 }
 
 final List<({String path, String label, IconData icon})> _destinations = [
   (path: AppRoutes.home, label: 'Home', icon: Icons.home_outlined),
+  (path: AppRoutes.surahs, label: 'Index', icon: Icons.library_books_outlined),
   (path: AppRoutes.bookmarks, label: 'Bookmarks', icon: Icons.bookmark_border),
   (path: AppRoutes.settings, label: 'Settings', icon: Icons.settings_outlined),
 ];
@@ -31,6 +37,18 @@ GoRouter buildRouter() {
           GoRoute(
             path: AppRoutes.home,
             builder: (context, state) => const HomePage(),
+          ),
+          GoRoute(
+            path: AppRoutes.surahs,
+            builder: (context, state) => const SurahIndexPage(),
+          ),
+          GoRoute(
+            path: '${AppRoutes.surahs}/:number',
+            builder: (context, state) {
+              final int number =
+                  int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
+              return ReaderPage(surahNumber: number);
+            },
           ),
           GoRoute(
             path: AppRoutes.bookmarks,
@@ -57,7 +75,9 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     int selectedIndex = 0;
     for (int i = 0; i < _destinations.length; i++) {
-      if (location == _destinations[i].path) {
+      final String path = _destinations[i].path;
+      if (location == path ||
+          (path != AppRoutes.home && location.startsWith('$path/'))) {
         selectedIndex = i;
       }
     }
