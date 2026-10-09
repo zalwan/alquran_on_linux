@@ -14,11 +14,15 @@ source credit, (3) version number stated, (4) transcript info kept,
 (7) no inappropriate ads. Source: <https://quranenc.com/en/home>
 ("Terms and Policies") and API docs <https://quranenc.com/en/home/api/>.
 
-- [ ] 1. List Indonesian editions: `GET
-      https://quranenc.com/api/v1/translations/list/id` and record every
-      entry's `key`, `title`, `description`, `version`, `last_update`.
-- [ ] 2. Choose exactly one edition (prefer the Ministry of Religious Affairs
-      edition if present and current); record why the others were rejected.
+- [x] 1. List Indonesian editions: `GET
+      https://quranenc.com/api/v1/translations/list/id` — evaluated
+      2026-10-09, three entries (see evidence below).
+- [x] 2. Choose exactly one edition: **`indonesian_affairs` (Ministry of
+      Religious Affairs, v1.0.1)** — direct Ministry lineage matching the
+      LPMQ fallback story; most recently revised of the Ministry-issued
+      options. `indonesian_complex` (The Complex, v1.0.1) is the documented
+      alternative; `indonesian_sabiq` (Sabiq Company, v1.1.3) rejected
+      (non-governmental publisher, oldest revision).
 - [ ] 3. Download via the documented endpoint (`/translation/sura/{key}/{n}`
       per surah or the bulk SQLite/CSV/XML dump, if its terms match); record
       the exact method + date. Never scrape HTML pages.
@@ -36,6 +40,24 @@ source credit, (3) version number stated, (4) transcript info kept,
       The local copy stays readable offline between checks.
 - [ ] 9. Product owner signs off; attach this completed checklist to the
       validation report. Only then may the files enter `assets/`/seed data.
+
+### Evidence for steps 1–2 (2026-10-09, API metadata + evaluation only)
+
+| key | title | version | last_update (UTC) |
+| --- | --- | --- | --- |
+| `indonesian_sabiq` | Sabiq Company | 1.1.3 | 2025-06-02 |
+| `indonesian_affairs` | Ministry of Religious Affairs | 1.0.1 | 2025-06-23 |
+| `indonesian_complex` | The Complex | 1.0.1 | 2025-06-26 |
+
+Evaluation download (per-surah API, edition `indonesian_affairs`, kept in
+`/tmp` only — **never committed, never bundled**): 114/114 surahs, **6,236
+rows, gapless ayah sequences, no surah mismatch**; row schema
+`{arabic_text, aya, footnotes, id, sura, translation}`; combined SHA-256
+`b057562e…ba82bee47`. Note: the API also returns per-row `arabic_text`,
+but the Arabic source of record remains Tanzil Uthmani (ADR-0001) — the
+QuranEnc Arabic is a cross-check at most. All three editions are ~16 months
+old at evaluation time, so the condition-(6) update check in step 8 is
+load-bearing, not ceremonial.
 
 ## 2. LPMQ written-permission request (fallback/alternative)
 
