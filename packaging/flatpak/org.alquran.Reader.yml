@@ -28,24 +28,30 @@ cleanup:
 modules:
   - name: flutter-sdk
     buildsystem: simple
+    # `type: archive` sources arrive pre-extracted; the tarball's top-level
+    # `flutter/` directory is copied into /app/flutter.
     build-commands:
-      - mkdir -p /app/flutter && tar xf flutter-sdk.tar.xz -C /app/flutter --strip-components=1
+      - mkdir -p /app/flutter && cp -a flutter/. /app/flutter/
     sources:
       - type: archive
         url: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.7-stable.tar.xz
         sha256: af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230
-        dest-filename: flutter-sdk.tar.xz
+        # Keep the tarball's top-level `flutter/` directory so the copy below
+        # has a stable layout (flatpak-builder strips 1 component by default).
+        strip-components: 0
   - name: alquran
     buildsystem: simple
+    # NOTE: each build-command runs in its own shell, so no `export` state
+    # carries over — every tool invocation uses its absolute path.
     build-commands:
-      - export PATH=/app/flutter/bin:$PATH
-      - export FLUTTER_SUPPRESS_ANALYTICS=true
-      - flutter --version
-      - flutter config --no-analytics
+      - /app/flutter/bin/flutter --version
+      - FLUTTER_SUPPRESS_ANALYTICS=true /app/flutter/bin/flutter config --no-analytics
       # NOTE: `pub get` needs network at build time. For Flathub submission
-      # this module must be replaced by generated offline sources (flutpak).
-      - flutter pub get
-      - flutter build linux --release
+      # this module must be replaced by generated offline sources (flutpak —
+      # see packaging README; `flutpak init` + `generate` was evaluated
+      # 2026-10-09 and deferred to release time).
+      - FLUTTER_SUPPRESS_ANALYTICS=true /app/flutter/bin/flutter pub get
+      - FLUTTER_SUPPRESS_ANALYTICS=true /app/flutter/bin/flutter build linux --release
       - cp -a build/linux/x64/release/bundle/. /app/
       - install -Dm755 packaging/flatpak/alquran.sh /app/bin/alquran
       - install -Dm644 packaging/flatpak/org.alquran.Reader.desktop /app/share/applications/org.alquran.Reader.desktop

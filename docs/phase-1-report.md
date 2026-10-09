@@ -43,9 +43,14 @@ Full matrix and rationale: ADR-0005.
 
 ## Explicitly deferred (still open)
 
-- Flatpak `--sandbox` build/install/launch: GB-scale SDK download did not fit
-  this session; manifest is authored and structurally validated. Must run in CI
-  or on a provisioned machine before the Phase 1 exit is signed off.
+- Flatpak sandboxed build/install/launch: attempted 2026-10-09 (GNOME Sdk 51,
+  Builder 1.4.9, manifest fixed up to `flutter pub get`), but `flutter pub`
+  dies silently inside this machine's nested sandbox — reproduced 4× including
+  `--offline`, while the pinned SDK 3.47.7 resolves the lockfile cleanly on
+  the host. Environmental limitation, not a manifest defect; full sandbox
+  proof, lint, and AppStream validation must run in CI / on an unrestricted
+  machine before the Phase 1 exit is signed off. Detail:
+  `packaging/flatpak/README.md`.
 - Flathub offline-source regeneration (`flutpak`/`flatpak-flutter`), lint, and
   AppStream validation — documented in `packaging/flatpak/README.md`.
 - Rendering spike for Uthmani shaping (R3) and drift-hook sandbox proof (R5).
