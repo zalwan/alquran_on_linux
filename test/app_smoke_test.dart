@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'test_helpers.dart';
 
 Future<Widget> makeApp() async {
   SharedPreferences.setMockInitialValues({});
@@ -31,7 +32,7 @@ void main() {
 
     expect(find.text('Alquran'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     // Content gate closed in this harness: the index explains itself.
     expect(find.text('Quran content is not available yet'), findsOneWidget);
@@ -40,7 +41,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Appearance'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.bookmark_border));
+    await tapRail(tester, Icons.bookmark_border);
     await tester.pumpAndSettle();
     // Rail label + page title share the word; the empty state is unique.
     expect(find.text('Bookmarks'), findsNWidgets(2));

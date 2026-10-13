@@ -160,7 +160,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
   }
 
   void _reveal(int ayah) {
-    // Header occupies list index 0, so verse N lives at index N.
+    // List index 0 is a spacer, so verse N lives at index N.
     setState(() => _pendingScroll = ayah);
   }
 
@@ -210,19 +210,25 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
               onJump: (raw) => _jumpTo(raw, loaded.surah.verseCount),
             ),
             Expanded(
-              child: ScrollablePositionedList.builder(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                itemCount: loaded.verses.length + 1,
-                itemScrollController: _scroll,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return const SizedBox(height: 8);
-                  }
-                  return _VerseCard(
-                    content: content,
-                    verse: loaded.verses[index - 1],
-                  );
-                },
+              child: Center(
+                // Readable line length on wide desktop windows.
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: ScrollablePositionedList.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    itemCount: loaded.verses.length + 1,
+                    itemScrollController: _scroll,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return const SizedBox(height: 8);
+                      }
+                      return _VerseCard(
+                        content: content,
+                        verse: loaded.verses[index - 1],
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             _SurahFooter(previous: loaded.previous, next: loaded.next),
@@ -403,6 +409,9 @@ class _VerseCard extends ConsumerWidget {
                 ),
               ),
               IconButton(
+                key: ValueKey(
+                  'bookmark-${verse.key.surahNumber}-${verse.key.ayahNumber}',
+                ),
                 tooltip: isBookmarked
                     ? 'Remove bookmark'
                     : 'Bookmark this verse',

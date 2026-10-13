@@ -40,31 +40,37 @@ class SurahIndexPage extends ConsumerWidget {
                 'keep working.',
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final Surah surah = items[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  foregroundColor: theme.colorScheme.onPrimaryContainer,
-                  child: Text('${surah.number}'),
-                ),
-                title: Text(surah.latinName),
-                subtitle: Text('${surah.verseCount} verses'),
-                trailing: Text(
-                  surah.arabicName,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontFamily: AppTypography.arabicFontFamily,
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final Surah surah = items[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                      child: Text('${surah.number}'),
+                    ),
+                    title: Text(surah.latinName),
+                    subtitle: Text('${surah.verseCount} verses'),
+                    trailing: Text(
+                      surah.arabicName,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontFamily: AppTypography.arabicFontFamily,
+                      ),
+                    ),
+                    onTap: () =>
+                        context.go('${AppRoutes.surahs}/${surah.number}'),
                   ),
-                ),
-                onTap: () => context.go('${AppRoutes.surahs}/${surah.number}'),
-              ),
-            );
-          },
+                );
+              },
+            ),
+          ),
         );
       },
     );

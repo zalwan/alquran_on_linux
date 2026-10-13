@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../unit/fakes.dart';
+import '../test_helpers.dart';
 
 Future<Widget> makeFlowApp() async {
   SharedPreferences.setMockInitialValues({});
@@ -31,11 +32,12 @@ Future<Widget> makeFlowApp() async {
 
 void main() {
   readerWaveATests();
+  readerWaveBTests();
   testWidgets('index lists surahs and opens the reader', (tester) async {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     expect(find.text('Surah 1'), findsOneWidget);
     expect(find.text('Surah 3'), findsOneWidget);
@@ -61,7 +63,7 @@ void main() {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Surah 2'));
     await tester.pumpAndSettle();
@@ -69,9 +71,9 @@ void main() {
     // Home offers to continue at the recorded position.
     await tester.tap(find.byIcon(Icons.home_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('Continue reading: Surah 2, Ayah 1'), findsOneWidget);
+    expect(find.text('Surah 2, Ayah 1'), findsOneWidget);
 
-    await tester.tap(find.text('Continue reading'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Continue reading'));
     await tester.pumpAndSettle();
     expect(
       find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
@@ -85,7 +87,7 @@ void main() {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Surah 1'));
     await tester.pumpAndSettle();
@@ -155,7 +157,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     expect(find.text('Quran content is not available yet'), findsOneWidget);
     expect(
@@ -172,7 +174,7 @@ void readerWaveATests() {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Surah 2'));
     await tester.pumpAndSettle();
@@ -200,7 +202,7 @@ void readerWaveATests() {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Surah 2'));
     await tester.pumpAndSettle();
@@ -211,14 +213,14 @@ void readerWaveATests() {
 
     await tester.tap(find.byIcon(Icons.home_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('Continue reading: Surah 2, Ayah 3'), findsOneWidget);
+    expect(find.text('Surah 2, Ayah 3'), findsOneWidget);
   });
 
   testWidgets('invalid jump shows an inline error', (tester) async {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tapRail(tester, Icons.library_books_outlined);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Surah 2'));
     await tester.pumpAndSettle();
@@ -227,5 +229,67 @@ void readerWaveATests() {
     await tester.tap(find.text('Go'));
     await tester.pumpAndSettle();
     expect(find.text('Enter a number between 1 and 4.'), findsOneWidget);
+  });
+}
+
+void readerWaveBTests() {
+  testWidgets('home dashboard shows shortcuts and live bookmark count', (
+    tester,
+  ) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Calm offline reading'), findsOneWidget);
+    expect(find.text('Browse the surah index'), findsOneWidget);
+    expect(find.text('No saved verses yet'), findsOneWidget);
+
+    // Bookmark a verse, return home, see the count update.
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Bookmark this verse').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('1 saved verse'), findsOneWidget);
+
+    await tester.tap(find.text('Browse the surah index'));
+    await tester.pumpAndSettle();
+    expect(find.text('Surah 3'), findsOneWidget);
+  });
+
+  testWidgets('tapping a bookmark opens its verse', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '3');
+    await tester.tap(find.text('Go'));
+    await tester.pumpAndSettle();
+
+    // Bookmark verse 3, then open the bookmarks page.
+    await tester.tap(find.byKey(const ValueKey('bookmark-2-3')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.byIcon(Icons.bookmark_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Surah 2, Ayah 3'), findsOneWidget);
+
+    // Tapping the entry reveals verse 3 in the reader.
+    await tester.tap(find.text('Surah 2, Ayah 3'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('PLACEHOLDER 2:3 \u06DD٣', findRichText: true),
+      findsOneWidget,
+    );
   });
 }
