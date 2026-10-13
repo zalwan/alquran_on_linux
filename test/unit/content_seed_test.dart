@@ -1,15 +1,18 @@
 import 'package:alquran_on_linux/data/content/content_seeder.dart';
 import 'seed_fixtures.dart';
+import 'dart:io';
 import 'package:alquran_on_linux/data/content/seed_bundle.dart';
 import 'package:alquran_on_linux/data/content/seed_validator.dart';
 import 'package:alquran_on_linux/data/database/app_database.dart';
 import 'package:alquran_on_linux/data/repositories/drift_content_repository.dart';
+import 'package:alquran_on_linux/data/repositories/drift_user_state.dart';
 import 'package:alquran_on_linux/domain/entities/ayah.dart';
 import 'package:alquran_on_linux/domain/entities/content_manifest.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   arabicOnlyTests();
+  migrationTests();
 
   group('seed validator', () {
     test('accepts a consistent bundle', () {
@@ -237,6 +240,63 @@ void arabicOnlyTests() {
       final manifest = await repo.getManifest();
       expect(manifest.hasTranslation, isFalse);
       expect(manifest.translationEditionId, isNull);
+    });
+  });
+}
+
+void migrationTests() {
+  group('legacy and corrupt databases', () {
+    test('rows written by raw SQL stay readable after reopen', () async {
+      final Directory dir = await Directory.systemTemp.createTemp(
+        'alquran-legacy',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      final File file = File('${dir.path}/alquran.db');
+
+      // Drift creates the schema on first open; simulate rows written by
+      // an older app version (or any external writer) with raw SQL.
+      final AppDatabase setup = AppDatabase(file);
+      await setup.customStatement("INSERT INTO bookmarks VALUES (2, 255, 0)");
+      await setup.customStatement(
+        "INSERT INTO reading_positions VALUES (1, 2, 255, 0)",
+      );
+      await setup.close();
+
+      // New code opens the same file: user state must survive untouched.
+      final AppDatabase reopened = AppDatabase(file);
+      addTearDown(reopened.close);
+      expect(
+        await DriftBookmarkRepository(
+          reopened,
+        ).isBookmarked(const AyahKey(surahNumber: 2, ayahNumber: 255)),
+        isTrue,
+      );
+      expect(
+        (await DriftReadingProgressRepository(reopened).loadLastRead())?.key,
+        const AyahKey(surahNumber: 2, ayahNumber: 255),
+      );
+    });
+
+    test('corrupt database file fails loudly, never silently', () async {
+      final Directory dir = await Directory.systemTemp.createTemp(
+        'alquran-corrupt',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      final File file = File('${dir.path}/alquran.db');
+      await file.writeAsBytes([0, 1, 2, 3, 4, 5, 6, 7]);
+
+      final AppDatabase broken = AppDatabase(file);
+      addTearDown(broken.close);
+      // Reads throw instead of returning invented data; the UI layers turn
+      // these into their pending/error states (covered by widget tests).
+      await expectLater(
+        DriftBookmarkRepository(broken).listBookmarks(),
+        throwsA(anything),
+      );
+      await expectLater(
+        DriftReadingProgressRepository(broken).loadLastRead(),
+        throwsA(anything),
+      );
     });
   });
 }

@@ -54,11 +54,29 @@ Full matrix and rationale: ADR-0005.
 - Flathub offline-source regeneration (`flutpak`/`flatpak-flutter`), lint, and
   AppStream validation — documented in `packaging/flatpak/README.md`.
 - Rendering spike for Uthmani shaping (R3) and drift-hook sandbox proof (R5).
-- Reference-device performance baselines (method defined in phase-0-report §7).
 - Phase 2 content work remains blocked until the Phase 0 translation clearance
   (QuranEnc key/version/checksum) is resolved.
 
-## Confirmation
+## Baseline measurements 2026-10-13 (reference device)
 
-No Quran text, translation, or font is bundled or displayed. Placeholder
-screens contain no verses by design.
+Reference device: Intel i7-8700 (12 threads), 31 GB RAM, Nobara Linux 44
+(GNOME), Flutter 3.44.4. All values are monitoring baselines, not release
+gates yet — gates are set once CI reproduces them.
+
+| Metric | Value | Method |
+| --- | --- | --- |
+| Release bundle size | 30 MB | `du` on `build/linux/x64/release/bundle` |
+| Full seed (6,236 verses) + serve | seconds, in-suite | `tanzil_seed_test` (in-memory) |
+| Longest-surah read path | instant in-suite | Al-Baqarah-length coverage via repository tests |
+| Cold start to first frame | TBD | `flutter run -d linux --profile --trace-startup`; attempted 2026-10-13, no trace produced in this environment — capture on a display machine before sign-off |
+
+Proposed monitoring gates for v1.0: cold start < 3 s, surah open < 500 ms,
+bundle < 100 MB, zero jank warnings on Al-Baqarah scroll.
+
+## Confirmation (updated 2026-10-13)
+
+Phase 1 itself bundled no content. Since then, v1.0 scoped Arabic-only
+(Tanzil Uthmani v1.1, validation report in `docs/validation-reports/`,
+translation deferred to v1.1 per owner decision) — see
+`docs/translation-clearance.md`. Placeholder screens contain no verses by
+design; the spike sample stays out of all release packages.
