@@ -7,6 +7,7 @@ import '../../app/router.dart';
 import '../../app/theme/app_typography.dart';
 import '../../app/widgets/content_unavailable.dart';
 import '../../core/format/arabic_numerals.dart';
+import '../../core/format/basmalah.dart';
 import '../../core/preferences/settings_providers.dart';
 import '../../data/database/database_providers.dart';
 import '../../domain/entities/ayah.dart';
@@ -373,6 +374,12 @@ class _VerseCard extends ConsumerWidget {
     );
     final bool isBookmarked = bookmarked.any((b) => b.key == verse.key);
     final bool highlighted = lastRead?.key == verse.key;
+    // Display-only split: the stored text stays verbatim (see basmalah.dart).
+    final DisplayVerse display = splitBasmalahForDisplay(
+      surah: verse.key.surahNumber,
+      ayah: verse.key.ayahNumber,
+      arabicText: verse.arabicText,
+    );
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -391,21 +398,40 @@ class _VerseCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(text: verse.arabicText),
-                      TextSpan(text: ayahMarker(verse.key.ayahNumber)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (display.basmalah != null) ...[
+                      Text(
+                        display.basmalah!,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: AppTypography.arabicFontFamily,
+                          fontSize: arabicSize + 2,
+                          height: 2.0,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                     ],
-                  ),
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontFamily: AppTypography.arabicFontFamily,
-                    fontSize: arabicSize,
-                    height: 2.0,
-                    color: scheme.onSurface,
-                  ),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: display.arabic),
+                          TextSpan(text: ayahMarker(verse.key.ayahNumber)),
+                        ],
+                      ),
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontFamily: AppTypography.arabicFontFamily,
+                        fontSize: arabicSize,
+                        height: 2.0,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               IconButton(

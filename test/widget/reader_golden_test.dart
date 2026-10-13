@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:alquran_on_linux/core/format/basmalah.dart';
 import 'package:alquran_on_linux/core/preferences/settings_providers.dart';
 import 'package:alquran_on_linux/core/preferences/shared_preferences_repository.dart';
 import 'package:alquran_on_linux/data/content/content_seeder.dart';
@@ -22,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// committed Tanzil files, Amiri typeface, ۝ markers, last-read highlight.
 /// Review diffs against `spikes/arabic-rendering/REPORT.md` before updating.
 void main() {
+  basmalahSplitTests();
   testWidgets('real Al-Fatihah renders with markers and highlight', (
     tester,
   ) async {
@@ -83,6 +85,69 @@ void main() {
     await expectLater(
       find.byType(ReaderPage),
       matchesGoldenFile('../goldens/reader_fatihah.png'),
+    );
+  });
+}
+
+void basmalahSplitTests() {
+  testWidgets('surah 112 shows the basmalah on its own line', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final Uint8List amiri = File(
+      'assets/fonts/Amiri-Regular.ttf',
+    ).readAsBytesSync();
+    final FontLoader loader = FontLoader('Amiri')
+      ..addFont(Future.value(ByteData.view(amiri.buffer)));
+    await loader.load();
+
+    SharedPreferences.setMockInitialValues({});
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final AppDatabase database = AppDatabase.forTesting(
+      NativeDatabase.memory(),
+    );
+    const String dir = 'data/manifest';
+    final ContentManifest manifest = ContentManifest.fromJson(
+      jsonDecode(File('$dir/manifest.json').readAsStringSync())
+          as Map<String, Object?>,
+    );
+    await seedContent(
+      database,
+      parseTanzilBundle(
+        File('$dir/tanzil-uthmani-v1.1.txt').readAsStringSync(),
+        File('$dir/quran-data-v1.0.xml').readAsStringSync(),
+      ),
+      manifest,
+      expectedSurahCount: 114,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          preferencesRepositoryProvider.overrideWithValue(
+            SharedPreferencesRepository(prefs),
+          ),
+          appDatabaseProvider.overrideWithValue(database),
+          quranContentProvider.overrideWithValue(
+            DriftQuranContentRepository(database),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: ReaderPage(surahNumber: 112)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The centered basmalah line (markers are covered by flow tests and
+    // the golden image below).
+    expect(find.text(basmalahStandard), findsOneWidget);
+
+    await expectLater(
+      find.byType(ReaderPage),
+      matchesGoldenFile('../goldens/reader_ikhlas.png'),
     );
   });
 }
