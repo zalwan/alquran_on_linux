@@ -7,6 +7,7 @@ import 'package:alquran_on_linux/features/reader/reader_page.dart';
 import 'package:alquran_on_linux/features/reader/reader_providers.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +34,7 @@ Future<Widget> makeFlowApp() async {
 void main() {
   readerWaveATests();
   readerWaveBTests();
+  readerKeyboardTests();
   testWidgets('index lists surahs and opens the reader', (tester) async {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
@@ -291,5 +293,84 @@ void readerWaveBTests() {
       find.text('PLACEHOLDER 2:3 \u06DD٣', findRichText: true),
       findsOneWidget,
     );
+  });
+}
+
+void readerKeyboardTests() {
+  testWidgets('arrow keys move the reading position', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.home_outlined);
+    await tester.pumpAndSettle();
+    expect(find.text('Surah 2, Ayah 3'), findsOneWidget);
+  });
+
+  testWidgets('J/K move, Home/End jump to edges', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.end);
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.home_outlined);
+    await tester.pumpAndSettle();
+    expect(find.text('Surah 2, Ayah 4'), findsOneWidget);
+  });
+
+  testWidgets('/ focuses the jump field, Esc returns to the index', (
+    tester,
+  ) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus?.debugLabel, 'jump-field');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Surah 1'), findsOneWidget);
+  });
+
+  testWidgets('verse cards expose position semantics', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    final SemanticsHandle handle = tester.ensureSemantics();
+    expect(
+      find.bySemanticsLabel(RegExp('Ayah 1 of 4.*current position')),
+      findsOneWidget,
+    );
+    handle.dispose();
   });
 }

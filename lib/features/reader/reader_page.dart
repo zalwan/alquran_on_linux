@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -23,10 +24,12 @@ import 'reader_providers.dart';
 ///
 /// Interaction rule (MVP): opening a surah records its first verse as the
 /// last-read location, unless a position in the same surah already exists
-/// (e.g. after a manual jump) — then it is kept and revealed. Cards follow
-/// `docs/theme.md` §7.3 with traditional ۝ end-of-verse markers. No
-/// separate basmalah header: the approved text carries the basmalah inline
-/// in verse 1 (except At-Taubah, which has none) and must be shown verbatim.
+/// (e.g. after a manual jump) — then it is kept and revealed. Arrow/J/K
+/// keys, Home, and End move the reading position; `/` focuses the
+/// jump field; `Esc` returns to the index. Cards follow `docs/theme.md`
+/// §7.3 with traditional ۝ end-of-verse markers. No separate basmalah
+/// header: the approved text carries the basmalah inline in verse 1
+/// (except At-Taubah, which has none) and must be shown verbatim.
 class ReaderPage extends ConsumerStatefulWidget {
   const ReaderPage({super.key, required this.surahNumber});
 
@@ -50,13 +53,34 @@ class _LoadedSurah {
   final Surah? next;
 }
 
+class _MoveAyahIntent extends Intent {
+  const _MoveAyahIntent(this.delta);
+  final int delta;
+}
+
+class _EdgeAyahIntent extends Intent {
+  const _EdgeAyahIntent(this.first);
+  final bool first;
+}
+
+class _FocusJumpIntent extends Intent {
+  const _FocusJumpIntent();
+}
+
+class _BackToIndexIntent extends Intent {
+  const _BackToIndexIntent();
+}
+
 class _ReaderPageState extends ConsumerState<ReaderPage> {
   final ItemScrollController _scroll = ItemScrollController();
   final TextEditingController _jumpField = TextEditingController();
+  final FocusNode _pageFocus = FocusNode(debugLabel: 'reader-page');
+  final FocusNode _jumpFocus = FocusNode(debugLabel: 'jump-field');
   Future<_LoadedSurah>? _load;
   bool _loadRequested = false;
   int? _pendingScroll;
   String? _jumpError;
+  int _verseCount = 0;
 
   @override
   void initState() {
@@ -72,6 +96,8 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
   @override
   void dispose() {
     _jumpField.dispose();
+    _pageFocus.dispose();
+    _jumpFocus.dispose();
     super.dispose();
   }
 
@@ -165,6 +191,51 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
     setState(() => _pendingScroll = ayah);
   }
 
+  /// Keyboard step: move the reading position by [delta] within this surah.
+  Future<void> _moveBy(int delta) async {
+    if (_verseCount < 1 || !mounted) {
+      return;
+    }
+    final ReadingProgressRepository progress = ref.read(
+      readingProgressRepositoryProvider,
+    );
+    final ReadingPosition? current = await RestoreLastRead(progress)();
+    if (!mounted) {
+      return;
+    }
+    final int base = current?.key.surahNumber == widget.surahNumber
+        ? current!.key.ayahNumber
+        : (delta > 0 ? 0 : _verseCount + 1);
+    final int target = (base + delta).clamp(1, _verseCount);
+    await UpdateLastRead(progress)(
+      AyahKey(surahNumber: widget.surahNumber, ayahNumber: target),
+    );
+    if (!mounted) {
+      return;
+    }
+    ref.invalidate(lastReadProvider);
+    _reveal(target);
+  }
+
+  /// Keyboard jump to the first or last verse.
+  Future<void> _moveEdge(bool first) async {
+    if (_verseCount < 1 || !mounted) {
+      return;
+    }
+    final ReadingProgressRepository progress = ref.read(
+      readingProgressRepositoryProvider,
+    );
+    final int target = first ? 1 : _verseCount;
+    await UpdateLastRead(progress)(
+      AyahKey(surahNumber: widget.surahNumber, ayahNumber: target),
+    );
+    if (!mounted) {
+      return;
+    }
+    ref.invalidate(lastReadProvider);
+    _reveal(target);
+  }
+
   @override
   Widget build(BuildContext context) {
     final QuranContentRepository? content = ref.watch(quranContentProvider);
@@ -189,6 +260,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
           return ContentUnavailable(detail: snapshot.error?.toString());
         }
         final _LoadedSurah loaded = snapshot.data!;
+        _verseCount = loaded.surah.verseCount;
         if (_pendingScroll != null && _scroll.isAttached) {
           final int target = _pendingScroll!;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -202,38 +274,80 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
           });
           _pendingScroll = null;
         }
-        return Column(
-          children: [
-            _SurahHeader(
-              surah: loaded.surah,
-              jumpField: _jumpField,
-              jumpError: _jumpError,
-              onJump: (raw) => _jumpTo(raw, loaded.surah.verseCount),
-            ),
-            Expanded(
-              child: Center(
-                // Readable line length on wide desktop windows.
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: ScrollablePositionedList.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    itemCount: loaded.verses.length + 1,
-                    itemScrollController: _scroll,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return const SizedBox(height: 8);
-                      }
-                      return _VerseCard(
-                        content: content,
-                        verse: loaded.verses[index - 1],
-                      );
-                    },
+        return Shortcuts(
+          // NOTE: not const — SingleActivator has identity equality, so
+          // distinct instances must be runtime map keys.
+          shortcuts: <ShortcutActivator, Intent>{
+            SingleActivator(LogicalKeyboardKey.arrowDown): _MoveAyahIntent(1),
+            SingleActivator(LogicalKeyboardKey.arrowUp): _MoveAyahIntent(-1),
+            SingleActivator(LogicalKeyboardKey.keyJ): _MoveAyahIntent(1),
+            SingleActivator(LogicalKeyboardKey.keyK): _MoveAyahIntent(-1),
+            SingleActivator(LogicalKeyboardKey.home): _EdgeAyahIntent(true),
+            SingleActivator(LogicalKeyboardKey.end): _EdgeAyahIntent(false),
+            SingleActivator(LogicalKeyboardKey.slash): _FocusJumpIntent(),
+            SingleActivator(LogicalKeyboardKey.escape): _BackToIndexIntent(),
+          },
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              _MoveAyahIntent: CallbackAction<_MoveAyahIntent>(
+                onInvoke: (_MoveAyahIntent intent) => _moveBy(intent.delta),
+              ),
+              _EdgeAyahIntent: CallbackAction<_EdgeAyahIntent>(
+                onInvoke: (_EdgeAyahIntent intent) => _moveEdge(intent.first),
+              ),
+              _FocusJumpIntent: CallbackAction<_FocusJumpIntent>(
+                onInvoke: (_FocusJumpIntent intent) {
+                  _jumpFocus.requestFocus();
+                  return null;
+                },
+              ),
+              _BackToIndexIntent: CallbackAction<_BackToIndexIntent>(
+                onInvoke: (_BackToIndexIntent intent) {
+                  context.go(AppRoutes.surahs);
+                  return null;
+                },
+              ),
+            },
+            child: Focus(
+              autofocus: true,
+              focusNode: _pageFocus,
+              child: Column(
+                children: [
+                  _SurahHeader(
+                    surah: loaded.surah,
+                    jumpField: _jumpField,
+                    jumpFocus: _jumpFocus,
+                    jumpError: _jumpError,
+                    onJump: (raw) => _jumpTo(raw, loaded.surah.verseCount),
                   ),
-                ),
+                  Expanded(
+                    child: Center(
+                      // Readable line length on wide desktop windows.
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: ScrollablePositionedList.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          itemCount: loaded.verses.length + 1,
+                          itemScrollController: _scroll,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return const SizedBox(height: 8);
+                            }
+                            return _VerseCard(
+                              content: content,
+                              verse: loaded.verses[index - 1],
+                              totalVerses: loaded.verses.length,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  _SurahFooter(previous: loaded.previous, next: loaded.next),
+                ],
               ),
             ),
-            _SurahFooter(previous: loaded.previous, next: loaded.next),
-          ],
+          ),
         );
       },
     );
@@ -244,12 +358,14 @@ class _SurahHeader extends ConsumerWidget {
   const _SurahHeader({
     required this.surah,
     required this.jumpField,
+    required this.jumpFocus,
     required this.jumpError,
     required this.onJump,
   });
 
   final Surah surah;
   final TextEditingController jumpField;
+  final FocusNode jumpFocus;
   final String? jumpError;
   final void Function(String raw) onJump;
 
@@ -288,6 +404,7 @@ class _SurahHeader extends ConsumerWidget {
               Expanded(
                 child: TextField(
                   controller: jumpField,
+                  focusNode: jumpFocus,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     hintText: 'Go to ayah…',
@@ -352,10 +469,15 @@ class _SurahFooter extends StatelessWidget {
 }
 
 class _VerseCard extends ConsumerWidget {
-  const _VerseCard({required this.content, required this.verse});
+  const _VerseCard({
+    required this.content,
+    required this.verse,
+    required this.totalVerses,
+  });
 
   final QuranContentRepository content;
   final Ayah verse;
+  final int totalVerses;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -381,101 +503,111 @@ class _VerseCard extends ConsumerWidget {
       arabicText: verse.arabicText,
     );
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(12),
-      decoration: highlighted
-          ? BoxDecoration(
-              color: scheme.primaryContainer,
-              border: Border(left: BorderSide(color: scheme.primary, width: 3)),
-              borderRadius: BorderRadius.circular(8),
-            )
-          : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (display.basmalah != null) ...[
-                      Text(
-                        display.basmalah!,
+    return Semantics(
+      // Screen readers announce position and current-position state;
+      // highlight is never color-only.
+      label:
+          'Ayah ${verse.key.ayahNumber} of $totalVerses'
+          '${highlighted ? ', current position' : ''}'
+          '${isBookmarked ? ', bookmarked' : ''}',
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: highlighted
+            ? BoxDecoration(
+                color: scheme.primaryContainer,
+                border: Border(
+                  left: BorderSide(color: scheme.primary, width: 3),
+                ),
+                borderRadius: BorderRadius.circular(8),
+              )
+            : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (display.basmalah != null) ...[
+                        Text(
+                          display.basmalah!,
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.arabicFontFamily,
+                            fontSize: arabicSize + 2,
+                            height: 2.0,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: display.arabic),
+                            TextSpan(text: ayahMarker(verse.key.ayahNumber)),
+                          ],
+                        ),
                         textDirection: TextDirection.rtl,
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.right,
                         style: TextStyle(
                           fontFamily: AppTypography.arabicFontFamily,
-                          fontSize: arabicSize + 2,
+                          fontSize: arabicSize,
                           height: 2.0,
                           color: scheme.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 4),
                     ],
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(text: display.arabic),
-                          TextSpan(text: ayahMarker(verse.key.ayahNumber)),
-                        ],
-                      ),
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontFamily: AppTypography.arabicFontFamily,
-                        fontSize: arabicSize,
-                        height: 2.0,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                key: ValueKey(
-                  'bookmark-${verse.key.surahNumber}-${verse.key.ayahNumber}',
-                ),
-                tooltip: isBookmarked
-                    ? 'Remove bookmark'
-                    : 'Bookmark this verse',
-                icon: Icon(
-                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                  color: isBookmarked ? scheme.primary : null,
-                ),
-                onPressed: () async {
-                  final BookmarkRepository repo = ref.read(
-                    bookmarkRepositoryProvider,
-                  );
-                  await ToggleBookmark(repo)(verse.key);
-                  ref.invalidate(bookmarksListProvider);
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          FutureBuilder<String?>(
-            future: content.getTranslation(verse.key, readerEditionId),
-            builder: (context, snapshot) {
-              final String? translation = snapshot.data;
-              if (translation == null || translation.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Padding(
-                padding: const EdgeInsets.only(left: 40, right: 4),
-                child: Text(
-                  translation,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurface.withValues(alpha: 0.7),
-                    height: 1.6,
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+                IconButton(
+                  key: ValueKey(
+                    'bookmark-${verse.key.surahNumber}-${verse.key.ayahNumber}',
+                  ),
+                  tooltip: isBookmarked
+                      ? 'Remove bookmark'
+                      : 'Bookmark this verse',
+                  icon: Icon(
+                    isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    color: isBookmarked ? scheme.primary : null,
+                  ),
+                  onPressed: () async {
+                    final BookmarkRepository repo = ref.read(
+                      bookmarkRepositoryProvider,
+                    );
+                    await ToggleBookmark(repo)(verse.key);
+                    ref.invalidate(bookmarksListProvider);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            FutureBuilder<String?>(
+              future: content.getTranslation(verse.key, readerEditionId),
+              builder: (context, snapshot) {
+                final String? translation = snapshot.data;
+                if (translation == null || translation.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(left: 40, right: 4),
+                  child: Text(
+                    translation,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurface.withValues(alpha: 0.7),
+                      height: 1.6,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
