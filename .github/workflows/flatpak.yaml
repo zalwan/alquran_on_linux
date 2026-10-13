@@ -1,0 +1,50 @@
+name: flatpak
+
+# Release-packaging validation. Runs the real Flatpak sandbox build that
+# cannot run in restricted/nested environments (see
+# packaging/flatpak/README.md "Validation log").
+#
+# NOTE: this job needs one green Actions run to confirm the manifest against
+# current Flathub runtimes; treat the first run as validation, not as proof.
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'packaging/flatpak/**'
+      - 'data/manifest/**'
+      - 'assets/**'
+      - '.github/workflows/flatpak.yaml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'packaging/flatpak/**'
+      - 'data/manifest/**'
+      - 'assets/**'
+  workflow_dispatch:
+
+jobs:
+  flatpak-build:
+    name: Flatpak sandbox build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain and runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub \
+            org.gnome.Platform//51 org.gnome.Sdk//51
+
+      - name: Build in sandbox (network allowed, like a dev machine)
+        run: |
+          flatpak-builder --force-clean build-dir \
+            packaging/flatpak/org.alquran.Reader.yml
