@@ -30,6 +30,7 @@ Future<Widget> makeFlowApp() async {
 }
 
 void main() {
+  readerWaveATests();
   testWidgets('index lists surahs and opens the reader', (tester) async {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
@@ -43,8 +44,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Four verse cards with placeholder text and translations.
-    expect(find.text('PLACEHOLDER 2:1'), findsOneWidget);
-    expect(find.text('PLACEHOLDER 2:4'), findsOneWidget);
+    expect(
+      find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.text('PLACEHOLDER 2:4 \u06DD٤', findRichText: true),
+      findsOneWidget,
+    );
     expect(find.textContaining('TRANSLATION'), findsNWidgets(4));
   });
 
@@ -66,7 +73,10 @@ void main() {
 
     await tester.tap(find.text('Continue reading'));
     await tester.pumpAndSettle();
-    expect(find.text('PLACEHOLDER 2:1'), findsOneWidget);
+    expect(
+      find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   testWidgets('bookmark toggle round-trips to the bookmarks page', (
@@ -152,5 +162,70 @@ void main() {
       find.textContaining('Bookmarks, theme, and settings keep working'),
       findsOneWidget,
     );
+  });
+}
+
+void readerWaveATests() {
+  testWidgets('reader shows header, markers, and footer navigation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    // Header with Latin name and verse count.
+    expect(find.text('Surah 2 · 4 verses'), findsOneWidget);
+    // Traditional end-of-verse marker inside the verse text.
+    expect(
+      find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
+      findsOneWidget,
+    );
+    // Prev/next footer.
+    expect(find.text('‹ Surah 1'), findsOneWidget);
+    expect(find.text('Surah 3 ›'), findsOneWidget);
+
+    await tester.tap(find.text('Surah 3 ›'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('PLACEHOLDER 3:1 \u06DD١', findRichText: true),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('jump-to-ayah moves and records last-read', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '3');
+    await tester.tap(find.text('Go'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Continue reading: Surah 2, Ayah 3'), findsOneWidget);
+  });
+
+  testWidgets('invalid jump shows an inline error', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '99');
+    await tester.tap(find.text('Go'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a number between 1 and 4.'), findsOneWidget);
   });
 }
