@@ -14,6 +14,13 @@ abstract class PreferencesRepository {
     themeModeDark,
   };
 
+  /// Reading density (`docs/theme.md` §7.3): comfortable (default) or
+  /// compact. Both keep Arabic line height ≥ 1.8.
+  static const String densityComfortable = 'comfortable';
+  static const String densityCompact = 'compact';
+
+  static const Set<String> densityCodes = {densityComfortable, densityCompact};
+
   String loadThemeModeCode();
 
   Future<void> saveThemeModeCode(String code);
@@ -21,4 +28,8 @@ abstract class PreferencesRepository {
   double loadArabicFontSize();
 
   Future<void> saveArabicFontSize(double size);
+
+  String loadDensityCode();
+
+  Future<void> saveDensityCode(String code);
 }

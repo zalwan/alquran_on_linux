@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_typography.dart';
+import '../../core/preferences/preferences_repository.dart';
 import '../../core/preferences/settings_providers.dart';
 import '../../domain/entities/ayah.dart';
 import '../../domain/repositories/quran_content_repository.dart';
@@ -16,6 +17,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeMode mode = ref.watch(themeModeSettingProvider);
     final double fontSize = ref.watch(arabicFontSizeSettingProvider);
+    final String density = ref.watch(densitySettingProvider);
     final ThemeData theme = Theme.of(context);
 
     return ListView(
@@ -82,6 +84,30 @@ class SettingsPage extends ConsumerWidget {
         // Live preview with a real verse when content is seeded; the
         // slider still works (and persists) without content.
         _VersePreview(fontSize: fontSize),
+        const SizedBox(height: 16),
+        Text('Reading density', style: theme.textTheme.titleMedium),
+        RadioGroup<String>(
+          groupValue: density,
+          onChanged: (String? value) {
+            if (value != null) {
+              ref.read(densitySettingProvider.notifier).set(value);
+            }
+          },
+          child: Column(
+            children: [
+              RadioListTile<String>(
+                title: const Text('Comfortable'),
+                subtitle: const Text('Generous spacing (default)'),
+                value: PreferencesRepository.densityComfortable,
+              ),
+              RadioListTile<String>(
+                title: const Text('Compact'),
+                subtitle: const Text('Tighter verses, same legibility'),
+                value: PreferencesRepository.densityCompact,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

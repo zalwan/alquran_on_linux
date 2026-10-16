@@ -14,6 +14,7 @@ class SharedPreferencesRepository implements PreferencesRepository {
 
   static const String keyThemeMode = 'theme_mode';
   static const String keyArabicFontSize = 'arabic_font_size';
+  static const String keyDensity = 'reading_density';
 
   @override
   String loadThemeModeCode() {
@@ -47,5 +48,22 @@ class SharedPreferencesRepository implements PreferencesRepository {
       keyArabicFontSize,
       AppTypography.clampArabicSize(size),
     );
+  }
+
+  @override
+  String loadDensityCode() {
+    final String? code = _prefs.getString(keyDensity);
+    if (code != null && PreferencesRepository.densityCodes.contains(code)) {
+      return code;
+    }
+    return PreferencesRepository.densityComfortable;
+  }
+
+  @override
+  Future<void> saveDensityCode(String code) async {
+    final String safe = PreferencesRepository.densityCodes.contains(code)
+        ? code
+        : PreferencesRepository.densityComfortable;
+    await _prefs.setString(keyDensity, safe);
   }
 }

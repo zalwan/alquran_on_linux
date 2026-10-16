@@ -64,3 +64,25 @@ class ArabicFontSizeSetting extends Notifier<double> {
 
 final arabicFontSizeSettingProvider =
     NotifierProvider<ArabicFontSizeSetting, double>(ArabicFontSizeSetting.new);
+
+/// Reading density, persisted via [PreferencesRepository].
+class DensitySetting extends Notifier<String> {
+  @override
+  String build() {
+    return ref.read(preferencesRepositoryProvider).loadDensityCode();
+  }
+
+  Future<void> set(String code) async {
+    final String safe = PreferencesRepository.densityCodes.contains(code)
+        ? code
+        : PreferencesRepository.densityComfortable;
+    state = safe;
+    await ref.read(preferencesRepositoryProvider).saveDensityCode(safe);
+  }
+
+  bool get isCompact => state == PreferencesRepository.densityCompact;
+}
+
+final densitySettingProvider = NotifierProvider<DensitySetting, String>(
+  DensitySetting.new,
+);

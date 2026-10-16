@@ -1,4 +1,5 @@
 import 'package:alquran_on_linux/app/app.dart';
+import 'package:alquran_on_linux/core/preferences/preferences_repository.dart';
 import 'package:alquran_on_linux/core/preferences/settings_providers.dart';
 import 'package:alquran_on_linux/core/preferences/shared_preferences_repository.dart';
 import 'package:alquran_on_linux/data/database/app_database.dart';
@@ -35,6 +36,7 @@ void main() {
   readerWaveATests();
   readerWaveBTests();
   readerKeyboardTests();
+  readerExtrasTests();
   testWidgets('index lists surahs and opens the reader', (tester) async {
     await tester.pumpWidget(await makeFlowApp());
     await tester.pumpAndSettle();
@@ -185,8 +187,8 @@ void readerWaveATests() {
     await tester.tap(find.text('Surah 2'));
     await tester.pumpAndSettle();
 
-    // Header with Latin name and verse count.
-    expect(find.text('Surah 2 · 4 verses'), findsOneWidget);
+    // Header with progress subtitle (last-read 2:1 was recorded on open).
+    expect(find.text('Surah 2 · ayah 1 of 4 (25%)'), findsOneWidget);
     // Traditional end-of-verse marker inside the verse text.
     expect(
       find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
@@ -377,5 +379,112 @@ void readerKeyboardTests() {
       findsOneWidget,
     );
     handle.dispose();
+  });
+}
+
+void readerExtrasTests() {
+  testWidgets('A+ and A- adjust Arabic size live', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 2'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Increase Arabic size'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Increase Arabic size'));
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.settings_outlined);
+    await tester.pumpAndSettle();
+    expect(find.text('32'), findsOneWidget);
+  });
+
+  testWidgets('copy verse shows a confirmation', (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map<Object?, Object?>)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Copy verse text').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Ayah 1 copied'), findsOneWidget);
+    // Verbatim stored text only — the ۝ marker is display, not copied.
+    expect(copied, 'PLACEHOLDER 1:1');
+  });
+
+  testWidgets('F1 opens the shortcuts dialog', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 1'));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.f1);
+    await tester.pumpAndSettle();
+    expect(find.text('Reader shortcuts'), findsOneWidget);
+    expect(find.text('Back to the index'), findsOneWidget);
+  });
+
+  testWidgets('surprise button opens some surah', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    // Record a position first so the hero shows both buttons.
+    await tapRail(tester, Icons.library_books_outlined);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah 1'));
+    await tester.pumpAndSettle();
+    await tapRail(tester, Icons.home_outlined);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Surprise me'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('compact density can be selected and persists', (tester) async {
+    await tester.pumpWidget(await makeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tapRail(tester, Icons.settings_outlined);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Compact'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Compact'));
+    await tester.pumpAndSettle();
+
+    // Survives a rebuild: reopen settings and check selection.
+    await tapRail(tester, Icons.home_outlined);
+    await tester.pumpAndSettle();
+    await tapRail(tester, Icons.settings_outlined);
+    await tester.pumpAndSettle();
+    final RadioGroup<String> group = tester.widget(
+      find.byType(RadioGroup<String>),
+    );
+    expect(group.groupValue, PreferencesRepository.densityCompact);
   });
 }

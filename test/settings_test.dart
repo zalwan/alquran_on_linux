@@ -19,6 +19,7 @@ Future<ProviderContainer> makeContainer(Map<String, Object> values) async {
 }
 
 void main() {
+  densitySettingsTests();
   test('theme mode defaults to system and round-trips', () async {
     SharedPreferences.setMockInitialValues({});
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -78,5 +79,35 @@ void main() {
     final PreferencesRepository repo = SharedPreferencesRepository(prefs);
 
     expect(repo.loadArabicFontSize(), AppTypography.arabicVerseMax);
+  });
+}
+
+void densitySettingsTests() {
+  test('density defaults to comfortable and round-trips', () async {
+    final ProviderContainer container = await makeContainer({});
+
+    expect(
+      container.read(densitySettingProvider),
+      PreferencesRepository.densityComfortable,
+    );
+
+    await container
+        .read(densitySettingProvider.notifier)
+        .set(PreferencesRepository.densityCompact);
+    expect(
+      container.read(densitySettingProvider),
+      PreferencesRepository.densityCompact,
+    );
+  });
+
+  test('invalid stored density falls back to comfortable', () async {
+    final ProviderContainer container = await makeContainer({
+      SharedPreferencesRepository.keyDensity: 'cozy',
+    });
+
+    expect(
+      container.read(densitySettingProvider),
+      PreferencesRepository.densityComfortable,
+    );
   });
 }

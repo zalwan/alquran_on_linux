@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,22 @@ import '../../app/router.dart';
 import '../../app/widgets/islamic_pattern.dart';
 import '../../core/preferences/settings_providers.dart';
 import '../../domain/entities/reading_state.dart';
+import '../../domain/repositories/quran_content_repository.dart';
 import '../reader/reader_providers.dart';
+
+/// Opens a random surah from the seeded catalogue (data-driven count, so a
+/// corrupted manifest can only navigate to existing surahs).
+Future<void> _openRandomSurah(BuildContext context, WidgetRef ref) async {
+  final QuranContentRepository? content = ref.read(quranContentProvider);
+  if (content == null) {
+    return;
+  }
+  final int count = (await content.getSurahs()).length;
+  if (count < 1 || !context.mounted) {
+    return;
+  }
+  context.go(AppRoutes.reader(1 + math.Random().nextInt(count)));
+}
 
 /// Home dashboard: patterned hero, continue-reading entry point, library
 /// stats, and shortcuts.
@@ -87,13 +104,13 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
+class _HeroCard extends ConsumerWidget {
   const _HeroCard({required this.position});
 
   final ReadingPosition? position;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
     return Container(
@@ -152,10 +169,25 @@ class _HeroCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () =>
-                        context.go(AppRoutes.reader(position!.key.surahNumber)),
-                    child: const Text('Continue reading'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => context.go(
+                            AppRoutes.reader(position!.key.surahNumber),
+                          ),
+                          child: const Text('Continue reading'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openRandomSurah(context, ref),
+                          icon: const Icon(Icons.shuffle),
+                          label: const Text('Surprise me'),
+                        ),
+                      ),
+                    ],
                   ),
                 ] else ...[
                   const SizedBox(height: 16),
