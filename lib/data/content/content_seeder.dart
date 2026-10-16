@@ -56,6 +56,7 @@ Future<void> seedContent(
             arabicName: surah.arabicName,
             latinName: surah.latinName,
             verseCount: surah.verseCount,
+            revelationType: Value(surah.revelationType),
           ),
       ]);
       batch.insertAll(db.ayahs, [

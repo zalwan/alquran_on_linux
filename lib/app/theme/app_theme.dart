@@ -16,7 +16,10 @@ abstract final class AppTheme {
     surface: AppColors.paperWhite,
     onSurface: AppColors.lightTextPrimary,
     surfaceContainerHighest: AppColors.paleGreen,
+    surfaceContainerHigh: Color(0xFFE4F3E9),
+    surfaceContainerLow: Color(0xFFF7FCF9),
     outline: AppColors.lightOutline,
+    outlineVariant: Color(0xFFD3E8DA),
     error: Color(0xFFB3261E),
   );
 
@@ -28,9 +31,22 @@ abstract final class AppTheme {
     surface: AppColors.darkSurface,
     onSurface: AppColors.darkTextPrimary,
     surfaceContainerHighest: AppColors.darkSurfaceVariant,
+    surfaceContainerHigh: Color(0xFF12271B),
+    surfaceContainerLow: Color(0xFF0A1C12),
     outline: AppColors.darkOutline,
+    outlineVariant: Color(0xFF1E3A2B),
     error: Color(0xFFF2B8B5),
   );
+
+  /// Corner radii shared by every card, sheet, and panel.
+  static const double radiusSmall = 8;
+  static const double radiusMedium = 12;
+  static const double radiusLarge = 16;
+  static const double radiusXLarge = 20;
+
+  /// Readable single-column width on wide desktop windows.
+  static const double maxReadingWidth = 720;
+  static const double maxDashboardWidth = 560;
 
   static ThemeData light() => _build(lightScheme, Brightness.light);
 
@@ -88,6 +104,34 @@ abstract final class AppTheme {
         indicatorColor: scheme.primaryContainer,
       ),
       dividerTheme: DividerThemeData(color: scheme.outline, thickness: 1),
+      cardTheme: CardThemeData(
+        color: scheme.surfaceContainerLow,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+      ),
+      chipTheme: themeChip(scheme),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusSmall),
+        ),
+        isDense: true,
+      ),
+    );
+  }
+
+  static ChipThemeData themeChip(ColorScheme scheme) {
+    return ChipThemeData(
+      backgroundColor: scheme.primaryContainer,
+      labelStyle: TextStyle(color: scheme.onPrimaryContainer, fontSize: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radiusSmall),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     );
   }
 }

@@ -37,37 +37,54 @@ GoRouter buildRouter() {
           return AppShell(location: state.uri.path, child: child);
         },
         routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            builder: (context, state) => const HomePage(),
-          ),
-          GoRoute(
-            path: AppRoutes.surahs,
-            builder: (context, state) => const SurahIndexPage(),
-          ),
+          for (final MapEntry<String, Widget Function()> entry in {
+            AppRoutes.home: () => const HomePage(),
+            AppRoutes.surahs: () => const SurahIndexPage(),
+            AppRoutes.bookmarks: () => const BookmarksPage(),
+            AppRoutes.settings: () => const SettingsPage(),
+            AppRoutes.about: () => const CreditsPage(),
+          }.entries)
+            GoRoute(
+              path: entry.key,
+              pageBuilder: (context, state) =>
+                  _fadeSlidePage(child: entry.value()),
+            ),
           GoRoute(
             path: '${AppRoutes.surahs}/:number',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final int number =
                   int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
-              return ReaderPage(surahNumber: number);
+              return _fadeSlidePage(child: ReaderPage(surahNumber: number));
             },
-          ),
-          GoRoute(
-            path: AppRoutes.bookmarks,
-            builder: (context, state) => const BookmarksPage(),
-          ),
-          GoRoute(
-            path: AppRoutes.settings,
-            builder: (context, state) => const SettingsPage(),
-          ),
-          GoRoute(
-            path: AppRoutes.about,
-            builder: (context, state) => const CreditsPage(),
           ),
         ],
       ),
     ],
+  );
+}
+
+/// Soft fade+slide transition; instant when the platform requests reduced
+/// motion (restrained motion policy).
+CustomTransitionPage<void> _fadeSlidePage({required Widget child}) {
+  return CustomTransitionPage<void>(
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.disableAnimationsOf(context)) {
+        return child;
+      }
+      return FadeTransition(
+        opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
+        child: SlideTransition(
+          position: animation.drive(
+            Tween(
+              begin: const Offset(0.02, 0),
+              end: Offset.zero,
+            ).chain(CurveTween(curve: Curves.easeOut)),
+          ),
+          child: child,
+        ),
+      );
+    },
   );
 }
 
@@ -88,14 +105,20 @@ class AppShell extends StatelessWidget {
         selectedIndex = i;
       }
     }
+    // Extended labels on wide desktop windows, compact rail otherwise.
+    final bool extended = MediaQuery.sizeOf(context).width >= 1100;
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
+            extended: extended,
+            minExtendedWidth: 220,
             selectedIndex: selectedIndex,
             onDestinationSelected: (int index) =>
                 context.go(_destinations[index].path),
-            labelType: NavigationRailLabelType.selected,
+            // Extended rails show labels beside icons; the selected-only
+            // label mode is only valid when compact (framework assertion).
+            labelType: extended ? null : NavigationRailLabelType.selected,
             destinations: [
               for (final destination in _destinations)
                 NavigationRailDestination(

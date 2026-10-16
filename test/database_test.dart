@@ -14,9 +14,9 @@ AppDatabase memoryDb() {
 }
 
 void main() {
-  test('database opens with schema version 1', () async {
+  test('database opens with schema version 2', () async {
     final AppDatabase db = memoryDb();
-    expect(db.schemaVersion, 1);
+    expect(db.schemaVersion, 2);
     final rows = await db.customSelect('SELECT 1 AS one').get();
     expect(rows.single.read<int>('one'), 1);
   });

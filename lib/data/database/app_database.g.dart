@@ -635,12 +635,24 @@ class $SurahsTable extends Surahs with TableInfo<$SurahsTable, SurahRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revelationTypeMeta = const VerificationMeta(
+    'revelationType',
+  );
+  @override
+  late final GeneratedColumn<String> revelationType = GeneratedColumn<String>(
+    'revelation_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     number,
     arabicName,
     latinName,
     verseCount,
+    revelationType,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -684,6 +696,15 @@ class $SurahsTable extends Surahs with TableInfo<$SurahsTable, SurahRow> {
     } else if (isInserting) {
       context.missing(_verseCountMeta);
     }
+    if (data.containsKey('revelation_type')) {
+      context.handle(
+        _revelationTypeMeta,
+        revelationType.isAcceptableOrUnknown(
+          data['revelation_type']!,
+          _revelationTypeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -709,6 +730,10 @@ class $SurahsTable extends Surahs with TableInfo<$SurahsTable, SurahRow> {
         DriftSqlType.int,
         data['${effectivePrefix}verse_count'],
       )!,
+      revelationType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}revelation_type'],
+      ),
     );
   }
 
@@ -723,11 +748,16 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
   final String arabicName;
   final String latinName;
   final int verseCount;
+
+  /// 'Meccan'/'Medinan'. Nullable so v1 databases migrate without data
+  /// loss; reseeding fills it (see content_bootstrap).
+  final String? revelationType;
   const SurahRow({
     required this.number,
     required this.arabicName,
     required this.latinName,
     required this.verseCount,
+    this.revelationType,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -736,6 +766,9 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
     map['arabic_name'] = Variable<String>(arabicName);
     map['latin_name'] = Variable<String>(latinName);
     map['verse_count'] = Variable<int>(verseCount);
+    if (!nullToAbsent || revelationType != null) {
+      map['revelation_type'] = Variable<String>(revelationType);
+    }
     return map;
   }
 
@@ -745,6 +778,9 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
       arabicName: Value(arabicName),
       latinName: Value(latinName),
       verseCount: Value(verseCount),
+      revelationType: revelationType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(revelationType),
     );
   }
 
@@ -758,6 +794,7 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
       arabicName: serializer.fromJson<String>(json['arabicName']),
       latinName: serializer.fromJson<String>(json['latinName']),
       verseCount: serializer.fromJson<int>(json['verseCount']),
+      revelationType: serializer.fromJson<String?>(json['revelationType']),
     );
   }
   @override
@@ -768,6 +805,7 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
       'arabicName': serializer.toJson<String>(arabicName),
       'latinName': serializer.toJson<String>(latinName),
       'verseCount': serializer.toJson<int>(verseCount),
+      'revelationType': serializer.toJson<String?>(revelationType),
     };
   }
 
@@ -776,11 +814,15 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
     String? arabicName,
     String? latinName,
     int? verseCount,
+    Value<String?> revelationType = const Value.absent(),
   }) => SurahRow(
     number: number ?? this.number,
     arabicName: arabicName ?? this.arabicName,
     latinName: latinName ?? this.latinName,
     verseCount: verseCount ?? this.verseCount,
+    revelationType: revelationType.present
+        ? revelationType.value
+        : this.revelationType,
   );
   SurahRow copyWithCompanion(SurahsCompanion data) {
     return SurahRow(
@@ -792,6 +834,9 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
       verseCount: data.verseCount.present
           ? data.verseCount.value
           : this.verseCount,
+      revelationType: data.revelationType.present
+          ? data.revelationType.value
+          : this.revelationType,
     );
   }
 
@@ -801,13 +846,15 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
           ..write('number: $number, ')
           ..write('arabicName: $arabicName, ')
           ..write('latinName: $latinName, ')
-          ..write('verseCount: $verseCount')
+          ..write('verseCount: $verseCount, ')
+          ..write('revelationType: $revelationType')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(number, arabicName, latinName, verseCount);
+  int get hashCode =>
+      Object.hash(number, arabicName, latinName, verseCount, revelationType);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -815,7 +862,8 @@ class SurahRow extends DataClass implements Insertable<SurahRow> {
           other.number == this.number &&
           other.arabicName == this.arabicName &&
           other.latinName == this.latinName &&
-          other.verseCount == this.verseCount);
+          other.verseCount == this.verseCount &&
+          other.revelationType == this.revelationType);
 }
 
 class SurahsCompanion extends UpdateCompanion<SurahRow> {
@@ -823,17 +871,20 @@ class SurahsCompanion extends UpdateCompanion<SurahRow> {
   final Value<String> arabicName;
   final Value<String> latinName;
   final Value<int> verseCount;
+  final Value<String?> revelationType;
   const SurahsCompanion({
     this.number = const Value.absent(),
     this.arabicName = const Value.absent(),
     this.latinName = const Value.absent(),
     this.verseCount = const Value.absent(),
+    this.revelationType = const Value.absent(),
   });
   SurahsCompanion.insert({
     this.number = const Value.absent(),
     required String arabicName,
     required String latinName,
     required int verseCount,
+    this.revelationType = const Value.absent(),
   }) : arabicName = Value(arabicName),
        latinName = Value(latinName),
        verseCount = Value(verseCount);
@@ -842,12 +893,14 @@ class SurahsCompanion extends UpdateCompanion<SurahRow> {
     Expression<String>? arabicName,
     Expression<String>? latinName,
     Expression<int>? verseCount,
+    Expression<String>? revelationType,
   }) {
     return RawValuesInsertable({
       if (number != null) 'number': number,
       if (arabicName != null) 'arabic_name': arabicName,
       if (latinName != null) 'latin_name': latinName,
       if (verseCount != null) 'verse_count': verseCount,
+      if (revelationType != null) 'revelation_type': revelationType,
     });
   }
 
@@ -856,12 +909,14 @@ class SurahsCompanion extends UpdateCompanion<SurahRow> {
     Value<String>? arabicName,
     Value<String>? latinName,
     Value<int>? verseCount,
+    Value<String?>? revelationType,
   }) {
     return SurahsCompanion(
       number: number ?? this.number,
       arabicName: arabicName ?? this.arabicName,
       latinName: latinName ?? this.latinName,
       verseCount: verseCount ?? this.verseCount,
+      revelationType: revelationType ?? this.revelationType,
     );
   }
 
@@ -880,6 +935,9 @@ class SurahsCompanion extends UpdateCompanion<SurahRow> {
     if (verseCount.present) {
       map['verse_count'] = Variable<int>(verseCount.value);
     }
+    if (revelationType.present) {
+      map['revelation_type'] = Variable<String>(revelationType.value);
+    }
     return map;
   }
 
@@ -889,7 +947,8 @@ class SurahsCompanion extends UpdateCompanion<SurahRow> {
           ..write('number: $number, ')
           ..write('arabicName: $arabicName, ')
           ..write('latinName: $latinName, ')
-          ..write('verseCount: $verseCount')
+          ..write('verseCount: $verseCount, ')
+          ..write('revelationType: $revelationType')
           ..write(')'))
         .toString();
   }
@@ -2521,6 +2580,7 @@ typedef $$SurahsTableCreateCompanionBuilder =
       required String arabicName,
       required String latinName,
       required int verseCount,
+      Value<String?> revelationType,
     });
 typedef $$SurahsTableUpdateCompanionBuilder =
     SurahsCompanion Function({
@@ -2528,6 +2588,7 @@ typedef $$SurahsTableUpdateCompanionBuilder =
       Value<String> arabicName,
       Value<String> latinName,
       Value<int> verseCount,
+      Value<String?> revelationType,
     });
 
 class $$SurahsTableFilterComposer
@@ -2556,6 +2617,11 @@ class $$SurahsTableFilterComposer
 
   ColumnFilters<int> get verseCount => $composableBuilder(
     column: $table.verseCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revelationType => $composableBuilder(
+    column: $table.revelationType,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2588,6 +2654,11 @@ class $$SurahsTableOrderingComposer
     column: $table.verseCount,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get revelationType => $composableBuilder(
+    column: $table.revelationType,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SurahsTableAnnotationComposer
@@ -2612,6 +2683,11 @@ class $$SurahsTableAnnotationComposer
 
   GeneratedColumn<int> get verseCount => $composableBuilder(
     column: $table.verseCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get revelationType => $composableBuilder(
+    column: $table.revelationType,
     builder: (column) => column,
   );
 }
@@ -2648,11 +2724,13 @@ class $$SurahsTableTableManager
                 Value<String> arabicName = const Value.absent(),
                 Value<String> latinName = const Value.absent(),
                 Value<int> verseCount = const Value.absent(),
+                Value<String?> revelationType = const Value.absent(),
               }) => SurahsCompanion(
                 number: number,
                 arabicName: arabicName,
                 latinName: latinName,
                 verseCount: verseCount,
+                revelationType: revelationType,
               ),
           createCompanionCallback:
               ({
@@ -2660,11 +2738,13 @@ class $$SurahsTableTableManager
                 required String arabicName,
                 required String latinName,
                 required int verseCount,
+                Value<String?> revelationType = const Value.absent(),
               }) => SurahsCompanion.insert(
                 number: number,
                 arabicName: arabicName,
                 latinName: latinName,
                 verseCount: verseCount,
+                revelationType: revelationType,
               ),
           withReferenceMapper: (p0) => p0
               .map(

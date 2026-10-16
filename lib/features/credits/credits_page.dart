@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/content_manifest.dart';
@@ -117,7 +118,6 @@ class _ManifestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
     String short(String sha) =>
         sha.length > 12 ? '${sha.substring(0, 12)}…' : sha;
     return Card(
@@ -127,14 +127,14 @@ class _ManifestCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _line(
-              theme,
+              context,
               'Arabic',
               '${manifest.arabicSource} · '
                   '${manifest.arabicEdition} · ${short(manifest.arabicSha256)}',
             ),
             if (manifest.translationEditionId != null)
               _line(
-                theme,
+                context,
                 'Translation',
                 '${manifest.translationEditionId} · '
                     'v${manifest.translationVersion} · '
@@ -142,32 +142,56 @@ class _ManifestCard extends StatelessWidget {
               )
             else
               _line(
-                theme,
+                context,
                 'Translation',
                 'Not bundled yet — Arabic-only dataset '
                     '(see docs/translation-clearance.md).',
               ),
-            _line(theme, 'Validation', manifest.validationReportRef),
+            _line(context, 'Validation', manifest.validationReportRef),
           ],
         ),
       ),
     );
   }
 
-  Widget _line(ThemeData theme, String label, String value) {
+  Widget _line(BuildContext context, String label, String value) {
+    final ThemeData theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  TextSpan(text: value),
+                ],
+              ),
+              style: theme.textTheme.bodyMedium,
             ),
-            TextSpan(text: value),
-          ],
-        ),
-        style: theme.textTheme.bodyMedium,
+          ),
+          IconButton(
+            tooltip: 'Copy $label',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.copy, size: 16),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: value));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$label copied'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }

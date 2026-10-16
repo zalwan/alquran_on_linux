@@ -11,6 +11,10 @@ class Surahs extends Table {
 
   IntColumn get verseCount => integer()();
 
+  /// 'Meccan'/'Medinan'. Nullable so v1 databases migrate without data
+  /// loss; reseeding fills it (see content_bootstrap).
+  TextColumn get revelationType => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {number};
 }

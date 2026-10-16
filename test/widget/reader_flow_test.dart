@@ -47,16 +47,20 @@ void main() {
     await tester.tap(find.text('Surah 2'));
     await tester.pumpAndSettle();
 
-    // Four verse cards with placeholder text and translations.
+    // Verse cards with placeholder text and translations; the last
+    // verse needs a jump because long lists virtualize off-screen cards.
     expect(
       find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
       findsOneWidget,
     );
+    await tester.enterText(find.byType(TextField), '4');
+    await tester.tap(find.text('Go'));
+    await tester.pumpAndSettle();
     expect(
       find.text('PLACEHOLDER 2:4 \u06DD٤', findRichText: true),
       findsOneWidget,
     );
-    expect(find.textContaining('TRANSLATION'), findsNWidgets(4));
+    expect(find.textContaining('TRANSLATION'), findsWidgets);
   });
 
   testWidgets('opening a surah records last-read and highlights it', (
@@ -243,7 +247,7 @@ void readerWaveBTests() {
 
     expect(find.text('Calm offline reading'), findsOneWidget);
     expect(find.text('Browse the surah index'), findsOneWidget);
-    expect(find.text('No saved verses yet'), findsOneWidget);
+    expect(find.text('0'), findsOneWidget);
 
     // Bookmark a verse, return home, see the count update.
     await tapRail(tester, Icons.library_books_outlined);
@@ -254,9 +258,10 @@ void readerWaveBTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.home_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('1 saved verse'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Bookmark'), findsOneWidget);
 
-    await tester.tap(find.text('Browse the surah index'));
+    await tester.tap(find.text('114'));
     await tester.pumpAndSettle();
     expect(find.text('Surah 3'), findsOneWidget);
   });

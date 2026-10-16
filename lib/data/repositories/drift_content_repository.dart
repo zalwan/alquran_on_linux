@@ -27,6 +27,7 @@ class DriftQuranContentRepository implements QuranContentRepository {
           arabicName: row.arabicName,
           latinName: row.latinName,
           verseCount: row.verseCount,
+          revelationType: row.revelationType,
         ),
     ];
   }
@@ -44,6 +45,7 @@ class DriftQuranContentRepository implements QuranContentRepository {
       arabicName: row.arabicName,
       latinName: row.latinName,
       verseCount: row.verseCount,
+      revelationType: row.revelationType,
     );
   }
 

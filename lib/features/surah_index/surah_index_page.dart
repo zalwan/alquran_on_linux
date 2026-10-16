@@ -8,6 +8,7 @@ import '../../app/widgets/content_unavailable.dart';
 import '../../domain/entities/surah.dart';
 import '../../domain/repositories/quran_content_repository.dart';
 import '../reader/reader_providers.dart';
+import 'revelation_label.dart';
 
 /// Canonical 114-surah list in source order. Served by
 /// [quranContentProvider]; shows [ContentUnavailable] while the gate is
@@ -57,7 +58,17 @@ class SurahIndexPage extends ConsumerWidget {
                       child: Text('${surah.number}'),
                     ),
                     title: Text(surah.latinName),
-                    subtitle: Text('${surah.verseCount} verses'),
+                    subtitle: Row(
+                      children: [
+                        Text('${surah.verseCount} verses'),
+                        const SizedBox(width: 8),
+                        if (revelationLabel(surah.revelationType) != null)
+                          Chip(
+                            label: Text(revelationLabel(surah.revelationType)!),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                      ],
+                    ),
                     trailing: Text(
                       surah.arabicName,
                       style: theme.textTheme.titleLarge?.copyWith(

@@ -53,6 +53,7 @@ SeedBundle parseTanzilBundle(String textFile, String metadataXml) {
         arabicName: name,
         latinName: tname,
         verseCount: ayas,
+        revelationType: sura.getAttribute('type'),
       ),
     );
   }

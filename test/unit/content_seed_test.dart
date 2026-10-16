@@ -6,13 +6,16 @@ import 'package:alquran_on_linux/data/content/seed_validator.dart';
 import 'package:alquran_on_linux/data/database/app_database.dart';
 import 'package:alquran_on_linux/data/repositories/drift_content_repository.dart';
 import 'package:alquran_on_linux/data/repositories/drift_user_state.dart';
+import 'package:sqlite3/sqlite3.dart';
 import 'package:alquran_on_linux/domain/entities/ayah.dart';
 import 'package:alquran_on_linux/domain/entities/content_manifest.dart';
+import 'package:alquran_on_linux/domain/entities/surah.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   arabicOnlyTests();
   migrationTests();
+  schemaMigrationTests();
 
   group('seed validator', () {
     test('accepts a consistent bundle', () {
@@ -296,6 +299,51 @@ void migrationTests() {
       await expectLater(
         DriftReadingProgressRepository(broken).loadLastRead(),
         throwsA(anything),
+      );
+    });
+  });
+}
+
+void schemaMigrationTests() {
+  group('schema migration v1 -> v2', () {
+    test('adds revelation_type without losing rows', () async {
+      final Directory dir = await Directory.systemTemp.createTemp(
+        'alquran-migrate',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      final File file = File('${dir.path}/alquran.db');
+
+      // Hand-built v1 database: surahs WITHOUT revelation_type, plus a
+      // user bookmark. user_version = 1 marks it as a v1 install.
+      final raw = sqlite3.open(file.path);
+      raw.execute(
+        'CREATE TABLE surahs (number INTEGER NOT NULL PRIMARY KEY, '
+        'arabic_name TEXT NOT NULL, latin_name TEXT NOT NULL, '
+        'verse_count INTEGER NOT NULL)',
+      );
+      raw.execute("INSERT INTO surahs VALUES (1, 'AR', 'Surah 1', 7)");
+      raw.execute(
+        'CREATE TABLE bookmarks (surah_number INTEGER NOT NULL, '
+        'ayah_number INTEGER NOT NULL, created_at INTEGER NOT NULL, '
+        'PRIMARY KEY (surah_number, ayah_number))',
+      );
+      raw.execute('INSERT INTO bookmarks VALUES (1, 2, 0)');
+      raw.execute('PRAGMA user_version = 1');
+      raw.close();
+
+      final AppDatabase upgraded = AppDatabase(file);
+      addTearDown(upgraded.close);
+      expect(upgraded.schemaVersion, 2);
+
+      final repo = DriftQuranContentRepository(upgraded);
+      final Surah? surah = await repo.getSurah(1);
+      expect(surah, isNotNull);
+      expect(surah!.revelationType, isNull);
+      expect(
+        await DriftBookmarkRepository(
+          upgraded,
+        ).isBookmarked(const AyahKey(surahNumber: 1, ayahNumber: 2)),
+        isTrue,
       );
     });
   });

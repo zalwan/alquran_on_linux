@@ -26,6 +26,14 @@ List<String> validateSeedBundle(
     if (surah.verseCount < 1) {
       errors.add('Surah ${surah.number} has no verses.');
     }
+    if (surah.revelationType != null &&
+        surah.revelationType != 'Meccan' &&
+        surah.revelationType != 'Medinan') {
+      errors.add(
+        'Surah ${surah.number} has unknown revelation type '
+        '${surah.revelationType}.',
+      );
+    }
   }
   if (bundle.surahs.length != expectedSurahCount) {
     errors.add(

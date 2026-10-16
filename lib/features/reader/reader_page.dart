@@ -7,6 +7,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_typography.dart';
 import '../../app/widgets/content_unavailable.dart';
+import '../../app/widgets/islamic_pattern.dart';
 import '../../core/format/arabic_numerals.dart';
 import '../../core/format/basmalah.dart';
 import '../../core/preferences/settings_providers.dart';
@@ -73,6 +74,7 @@ class _BackToIndexIntent extends Intent {
 
 class _ReaderPageState extends ConsumerState<ReaderPage> {
   final ItemScrollController _scroll = ItemScrollController();
+  final ItemPositionsListener _positions = ItemPositionsListener.create();
   final TextEditingController _jumpField = TextEditingController();
   final FocusNode _pageFocus = FocusNode(debugLabel: 'reader-page');
   final FocusNode _jumpFocus = FocusNode(debugLabel: 'jump-field');
@@ -325,20 +327,43 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
                       // Readable line length on wide desktop windows.
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 720),
-                        child: ScrollablePositionedList.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          itemCount: loaded.verses.length + 1,
-                          itemScrollController: _scroll,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return const SizedBox(height: 8);
-                            }
-                            return _VerseCard(
-                              content: content,
-                              verse: loaded.verses[index - 1],
-                              totalVerses: loaded.verses.length,
-                            );
-                          },
+                        child: Column(
+                          children: [
+                            _ReadingProgressStrip(
+                              positions: _positions,
+                              verseCount: loaded.verses.length,
+                            ),
+                            Expanded(
+                              child: ScrollablePositionedList.builder(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                itemCount: loaded.verses.length + 1,
+                                itemScrollController: _scroll,
+                                itemPositionsListener: _positions,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return const SizedBox(height: 8);
+                                  }
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (index > 1)
+                                        const Divider(height: 24, thickness: 1),
+                                      _VerseCard(
+                                        content: content,
+                                        verse: loaded.verses[index - 1],
+                                        totalVerses: loaded.verses.length,
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -347,6 +372,59 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
                 ],
               ),
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ReadingProgressStrip extends StatelessWidget {
+  const _ReadingProgressStrip({
+    required this.positions,
+    required this.verseCount,
+  });
+
+  final ItemPositionsListener positions;
+  final int verseCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return ValueListenableBuilder<Iterable<ItemPosition>>(
+      valueListenable: positions.itemPositions,
+      builder: (context, value, _) {
+        int current = 1;
+        for (final ItemPosition position in value) {
+          if (position.index > 0 &&
+              position.itemLeadingEdge < 0.9 &&
+              position.index < current + verseCount) {
+            if (current == 1 || position.index < current) {
+              current = position.index;
+            }
+          }
+        }
+        current = current.clamp(1, verseCount);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 2),
+          child: Row(
+            children: [
+              Text(
+                'Ayah $current of $verseCount',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: verseCount <= 1 ? 1 : current / verseCount,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                  minHeight: 4,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -380,52 +458,87 @@ class _SurahHeader extends ConsumerWidget {
         color: scheme.primaryContainer,
         border: Border(bottom: BorderSide(color: scheme.outline)),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Text(
-            surah.arabicName,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppTypography.arabicFontFamily,
-              fontSize: 32,
-              color: scheme.onPrimaryContainer,
+          Positioned.fill(
+            child: IslamicPattern(
+              color: scheme.primary.withValues(alpha: 0.10),
+              cell: 44,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${surah.latinName} · ${surah.verseCount} verses',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: scheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: jumpField,
-                  focusNode: jumpFocus,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    hintText: 'Go to ayah…',
-                    isDense: true,
-                    border: OutlineInputBorder(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: scheme.primary, width: 1.5),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 6,
                   ),
-                  onSubmitted: onJump,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.5),
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Text(
+                    surah.arabicName,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTypography.arabicFontFamily,
+                      fontSize: 32,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () => onJump(jumpField.text),
-                child: const Text('Go'),
+              const SizedBox(height: 4),
+              Text(
+                '${surah.latinName} · ${surah.verseCount} verses',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                ),
               ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: jumpField,
+                      focusNode: jumpFocus,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: 'Go to ayah…',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: onJump,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () => onJump(jumpField.text),
+                    child: const Text('Go'),
+                  ),
+                ],
+              ),
+              if (jumpError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    jumpError!,
+                    style: TextStyle(color: scheme.error),
+                  ),
+                ),
             ],
           ),
-          if (jumpError != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(jumpError!, style: TextStyle(color: scheme.error)),
-            ),
         ],
       ),
     );
@@ -446,22 +559,22 @@ class _SurahFooter extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (previous != null)
-            OutlinedButton(
-              onPressed: () => context.go(AppRoutes.reader(previous!.number)),
-              child: Text('‹ ${previous!.latinName}'),
-            )
-          else
-            const SizedBox.shrink(),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => context.go(AppRoutes.reader(previous!.number)),
+                child: Text('‹ ${previous!.latinName}'),
+              ),
+            ),
+          if (previous != null && next != null) const SizedBox(width: 12),
           if (next != null)
-            OutlinedButton(
-              onPressed: () => context.go(AppRoutes.reader(next!.number)),
-              child: Text('${next!.latinName} ›'),
-            )
-          else
-            const SizedBox.shrink(),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => context.go(AppRoutes.reader(next!.number)),
+                child: Text('${next!.latinName} ›'),
+              ),
+            ),
         ],
       ),
     );
@@ -510,7 +623,8 @@ class _VerseCard extends ConsumerWidget {
           'Ayah ${verse.key.ayahNumber} of $totalVerses'
           '${highlighted ? ', current position' : ''}'
           '${isBookmarked ? ', bookmarked' : ''}',
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(12),
         decoration: highlighted

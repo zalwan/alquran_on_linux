@@ -29,7 +29,21 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) => m.createAll(),
+      onUpgrade: (Migrator m, int from, int to) async {
+        // v1 -> v2: revelation-type column for the surah index badges.
+        // Nullable: existing rows (and user tables) survive untouched.
+        if (from < 2) {
+          await m.addColumn(surahs, surahs.revelationType);
+        }
+      },
+    );
+  }
 
   static QueryExecutor _open(File file) {
     return NativeDatabase.createInBackground(file);

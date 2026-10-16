@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
+import '../../core/format/relative_time.dart';
 import '../../data/database/database_providers.dart';
 import '../../domain/entities/reading_state.dart';
 import '../../domain/usecases/reading_progress.dart';
@@ -55,6 +56,9 @@ class BookmarksPage extends ConsumerWidget {
                           title: Text(
                             'Surah ${bookmark.key.surahNumber}, '
                             'Ayah ${bookmark.key.ayahNumber}',
+                          ),
+                          subtitle: Text(
+                            'Saved ${relativeTime(bookmark.createdAt)}',
                           ),
                           trailing: IconButton(
                             tooltip: 'Remove bookmark',

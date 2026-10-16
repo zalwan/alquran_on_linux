@@ -16,6 +16,7 @@ class FakeQuranContentRepository implements QuranContentRepository {
             arabicName: 'سورة $s',
             latinName: 'Surah $s',
             verseCount: ayahsPerSurah,
+            revelationType: s.isEven ? 'Medinan' : 'Meccan',
           ),
       ],
       ayahs = {

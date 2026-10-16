@@ -9,12 +9,16 @@ class SeedSurah {
     required this.arabicName,
     required this.latinName,
     required this.verseCount,
+    this.revelationType,
   });
 
   final int number;
   final String arabicName;
   final String latinName;
   final int verseCount;
+
+  /// 'Meccan'/'Medinan' from metadata, or null when unavailable.
+  final String? revelationType;
 }
 
 class SeedVerse {
