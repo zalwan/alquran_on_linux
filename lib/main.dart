@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
+import 'core/platform/app_directories.dart';
 import 'core/preferences/settings_providers.dart';
 import 'core/preferences/shared_preferences_repository.dart';
 import 'data/content/content_bootstrap.dart';
@@ -25,7 +25,7 @@ Future<void> main() async {
   );
   // File-backed user-state database under the app-specific support
   // directory (~/.var/app/<id>/ in Flatpak — no extra permission needed).
-  final Directory supportDir = await getApplicationSupportDirectory();
+  final Directory supportDir = await const AppDirectories().ensureSupportDir();
   final AppDatabase database = AppDatabase(
     File('${supportDir.path}/alquran.db'),
   );
