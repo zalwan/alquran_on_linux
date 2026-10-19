@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../app/router.dart';
+import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_typography.dart';
 import '../../app/widgets/content_unavailable.dart';
-import '../../app/widgets/islamic_pattern.dart';
-import '../../core/format/arabic_numerals.dart';
+import '../../app/widgets/indonesian_ornament.dart';
 import '../../core/format/basmalah.dart';
 import '../../core/preferences/preferences_repository.dart';
 import '../../core/preferences/settings_providers.dart';
@@ -20,6 +20,7 @@ import '../../domain/repositories/quran_content_repository.dart';
 import '../../domain/repositories/user_state_repositories.dart';
 import '../../domain/usecases/open_surah.dart';
 import '../../domain/usecases/reading_progress.dart';
+import '../surah_index/revelation_label.dart';
 import 'reader_providers.dart';
 
 /// Verse-by-verse reader for one surah.
@@ -397,6 +398,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
                                           Divider(
                                             height: compact ? 12 : 24,
                                             thickness: 1,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant
+                                                .withValues(alpha: 0.5),
                                           ),
                                         _VerseCard(
                                           content: content,
@@ -585,6 +590,9 @@ class _SurahHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
+    final Color gold = theme.brightness == Brightness.dark
+        ? AppColors.darkGold
+        : AppColors.gold;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
@@ -592,82 +600,90 @@ class _SurahHeader extends ConsumerWidget {
         color: scheme.primaryContainer,
         border: Border(bottom: BorderSide(color: scheme.outline)),
       ),
-      child: Stack(
+      child: Column(
         children: [
-          Positioned.fill(
-            child: IslamicPattern(
-              color: scheme.primary.withValues(alpha: 0.10),
-              cell: 44,
-            ),
-          ),
-          Column(
+          Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: scheme.primary, width: 1.5),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: scheme.primary.withValues(alpha: 0.5),
-                    ),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
                   child: Text(
-                    surah.arabicName,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: AppTypography.arabicFontFamily,
-                      fontSize: 32,
+                    revelationLabel(surah.revelationType) ?? '',
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              _ProgressRow(surah: surah),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: jumpField,
-                      focusNode: jumpFocus,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        hintText: 'Go to ayah…',
-                        isDense: true,
-                        border: OutlineInputBorder(),
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: CartouchePlate(
+                    color: gold,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 56,
+                      vertical: 9,
+                    ),
+                    child: Text(
+                      surah.arabicName,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTypography.arabicFontFamily,
+                        fontSize: 28,
+                        height: 1.4,
+                        color: gold,
                       ),
-                      onSubmitted: onJump,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => onJump(jumpField.text),
-                    child: const Text('Go'),
-                  ),
-                ],
+                ),
               ),
-              if (jumpError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
                   child: Text(
-                    jumpError!,
-                    style: TextStyle(color: scheme.error),
+                    '${surah.verseCount} Ayat',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
+              ),
             ],
           ),
+          const SizedBox(height: 4),
+          _ProgressRow(surah: surah),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: jumpField,
+                  focusNode: jumpFocus,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Go to ayah…',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: onJump,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => onJump(jumpField.text),
+                child: const Text('Go'),
+              ),
+            ],
+          ),
+          if (jumpError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(jumpError!, style: TextStyle(color: scheme.error)),
+            ),
         ],
       ),
     );
@@ -775,6 +791,9 @@ class _VerseCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
+    final Color gold = theme.brightness == Brightness.dark
+        ? AppColors.darkGold
+        : AppColors.gold;
     final double arabicSize = ref.watch(arabicFontSizeSettingProvider);
     final ReadingPosition? lastRead = ref
         .watch(lastReadProvider)
@@ -821,6 +840,12 @@ class _VerseCard extends ConsumerWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Ornamental ayah-number medallion sits at the head of the
+                // verse line, matching Indonesian mushaf printings.
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: VerseMedallion(number: verse.key.ayahNumber),
+                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -834,18 +859,13 @@ class _VerseCard extends ConsumerWidget {
                             fontFamily: AppTypography.arabicFontFamily,
                             fontSize: arabicSize + 2,
                             height: compact ? 1.8 : 2.0,
-                            color: scheme.primary,
+                            color: gold,
                           ),
                         ),
                         const SizedBox(height: 4),
                       ],
                       Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(text: display.arabic),
-                            TextSpan(text: ayahMarker(verse.key.ayahNumber)),
-                          ],
-                        ),
+                        TextSpan(children: [TextSpan(text: display.arabic)]),
                         textDirection: TextDirection.rtl,
                         textAlign: TextAlign.right,
                         style: TextStyle(

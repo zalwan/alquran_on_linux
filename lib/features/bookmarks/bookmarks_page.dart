@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
+import '../../app/theme/app_theme.dart';
+import '../../app/widgets/indonesian_ornament.dart';
 import '../../core/format/relative_time.dart';
 import '../../data/database/database_providers.dart';
 import '../../domain/entities/reading_state.dart';
@@ -36,53 +38,79 @@ class BookmarksPage extends ConsumerWidget {
                   data: (items) {
                     if (items.isEmpty) {
                       return Center(
-                        child: Text(
-                          'No bookmarks yet. Open a surah and tap the bookmark '
-                          'icon on any verse.',
-                          style: theme.textTheme.bodyMedium,
-                          textAlign: TextAlign.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.bookmark_border,
+                              size: 44,
+                              color: theme.colorScheme.outline,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No bookmarks yet. Open a surah and tap the '
+                              'bookmark icon on any verse.',
+                              style: theme.textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
                       );
                     }
                     return ListView.builder(
-                      itemCount: items.length,
                       itemBuilder: (context, index) {
                         final Bookmark bookmark = items[index];
-                        return ListTile(
-                          leading: Icon(
-                            Icons.bookmark,
-                            color: theme.colorScheme.primary,
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Card(
+                            margin: EdgeInsets.zero,
+                            child: ListTile(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusLarge,
+                                ),
+                              ),
+                              leading: VerseMedallion(
+                                number: bookmark.key.ayahNumber,
+                              ),
+                              title: Text(
+                                'Surah ${bookmark.key.surahNumber}, '
+                                'Ayah ${bookmark.key.ayahNumber}',
+                              ),
+                              subtitle: Text(
+                                'Saved ${relativeTime(bookmark.createdAt)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.65,
+                                  ),
+                                ),
+                              ),
+                              trailing: IconButton(
+                                tooltip: 'Remove bookmark',
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () async {
+                                  await ref
+                                      .read(bookmarkRepositoryProvider)
+                                      .removeBookmark(bookmark.key);
+                                  ref.invalidate(bookmarksListProvider);
+                                },
+                              ),
+                              onTap: () async {
+                                await UpdateLastRead(
+                                  ref.read(readingProgressRepositoryProvider),
+                                )(bookmark.key);
+                                ref.invalidate(lastReadProvider);
+                                if (context.mounted) {
+                                  context.go(
+                                    AppRoutes.reader(bookmark.key.surahNumber),
+                                  );
+                                }
+                              },
+                            ),
                           ),
-                          title: Text(
-                            'Surah ${bookmark.key.surahNumber}, '
-                            'Ayah ${bookmark.key.ayahNumber}',
-                          ),
-                          subtitle: Text(
-                            'Saved ${relativeTime(bookmark.createdAt)}',
-                          ),
-                          trailing: IconButton(
-                            tooltip: 'Remove bookmark',
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () async {
-                              await ref
-                                  .read(bookmarkRepositoryProvider)
-                                  .removeBookmark(bookmark.key);
-                              ref.invalidate(bookmarksListProvider);
-                            },
-                          ),
-                          onTap: () async {
-                            await UpdateLastRead(
-                              ref.read(readingProgressRepositoryProvider),
-                            )(bookmark.key);
-                            ref.invalidate(lastReadProvider);
-                            if (context.mounted) {
-                              context.go(
-                                AppRoutes.reader(bookmark.key.surahNumber),
-                              );
-                            }
-                          },
                         );
                       },
+                      itemCount: items.length,
                     );
                   },
                   loading: () =>

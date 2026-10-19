@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
-import '../../app/widgets/islamic_pattern.dart';
+import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_typography.dart';
+import '../../app/widgets/indonesian_ornament.dart';
 import '../../core/preferences/settings_providers.dart';
 import '../../domain/entities/reading_state.dart';
 import '../../domain/repositories/quran_content_repository.dart';
@@ -113,92 +115,93 @@ class _HeroCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
+    final Color gold = theme.brightness == Brightness.dark
+        ? AppColors.darkGold
+        : AppColors.gold;
     return Container(
       decoration: BoxDecoration(
         color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      child: Stack(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: IslamicPattern(
-                color: scheme.primary.withValues(alpha: 0.14),
-                cell: 48,
+          CartouchePlate(
+            color: gold,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
+            child: Text(
+              'القرآن الكريم',
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTypography.arabicFontFamily,
+                fontSize: 28,
+                height: 1.5,
+                color: gold,
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.menu_book_outlined,
-                      size: 32,
-                      color: scheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Alquran',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: scheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Calm offline reading',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: scheme.onPrimaryContainer,
-                  ),
-                ),
-                if (position != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Surah ${position!.key.surahNumber}, '
-                    'Ayah ${position!.key.ayahNumber}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => context.go(
-                            AppRoutes.reader(position!.key.surahNumber),
-                          ),
-                          child: const Text('Continue reading'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _openRandomSurah(context, ref),
-                          icon: const Icon(Icons.shuffle),
-                          label: const Text('Surprise me'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: () => context.go(AppRoutes.surahs),
-                    child: const Text('Browse the surah index'),
-                  ),
-                ],
-              ],
+          const SizedBox(height: 12),
+          Text(
+            'Alquran',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: scheme.onPrimaryContainer,
+              fontWeight: FontWeight.w700,
             ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Calm offline reading',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+          if (position != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: gold.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                'Surah ${position!.key.surahNumber}, '
+                'Ayah ${position!.key.ayahNumber}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        context.go(AppRoutes.reader(position!.key.surahNumber)),
+                    child: const Text('Continue reading'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openRandomSurah(context, ref),
+                    icon: const Icon(Icons.shuffle),
+                    label: const Text('Surprise me'),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () => context.go(AppRoutes.surahs),
+              child: const Text('Browse the surah index'),
+            ),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:alquran_on_linux/app/app.dart';
+import 'package:alquran_on_linux/app/widgets/indonesian_ornament.dart';
 import 'package:alquran_on_linux/core/preferences/preferences_repository.dart';
 import 'package:alquran_on_linux/core/preferences/settings_providers.dart';
 import 'package:alquran_on_linux/core/preferences/shared_preferences_repository.dart';
@@ -52,14 +53,14 @@ void main() {
     // Verse cards with placeholder text and translations; the last
     // verse needs a jump because long lists virtualize off-screen cards.
     expect(
-      find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
+      find.text('PLACEHOLDER 2:1', findRichText: true),
       findsOneWidget,
     );
     await tester.enterText(find.byType(TextField), '4');
     await tester.tap(find.text('Go'));
     await tester.pumpAndSettle();
     expect(
-      find.text('PLACEHOLDER 2:4 \u06DD٤', findRichText: true),
+      find.text('PLACEHOLDER 2:4', findRichText: true),
       findsOneWidget,
     );
     expect(find.textContaining('TRANSLATION'), findsWidgets);
@@ -84,7 +85,7 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Continue reading'));
     await tester.pumpAndSettle();
     expect(
-      find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
+      find.text('PLACEHOLDER 2:1', findRichText: true),
       findsOneWidget,
     );
   });
@@ -189,9 +190,11 @@ void readerWaveATests() {
 
     // Header with progress subtitle (last-read 2:1 was recorded on open).
     expect(find.text('Surah 2 · ayah 1 of 4 (25%)'), findsOneWidget);
-    // Traditional end-of-verse marker inside the verse text.
+    // Verse text stays verbatim; the ayah number lives in the medallion
+    // at the head of the line.
+    expect(find.byType(VerseMedallion), findsWidgets);
     expect(
-      find.text('PLACEHOLDER 2:1 \u06DD١', findRichText: true),
+      find.text('PLACEHOLDER 2:1', findRichText: true),
       findsOneWidget,
     );
     // Prev/next footer.
@@ -201,7 +204,7 @@ void readerWaveATests() {
     await tester.tap(find.text('Surah 3 ›'));
     await tester.pumpAndSettle();
     expect(
-      find.text('PLACEHOLDER 3:1 \u06DD١', findRichText: true),
+      find.text('PLACEHOLDER 3:1', findRichText: true),
       findsOneWidget,
     );
   });
@@ -297,7 +300,7 @@ void readerWaveBTests() {
     await tester.tap(find.text('Surah 2, Ayah 3'));
     await tester.pumpAndSettle();
     expect(
-      find.text('PLACEHOLDER 2:3 \u06DD٣', findRichText: true),
+      find.text('PLACEHOLDER 2:3', findRichText: true),
       findsOneWidget,
     );
   });

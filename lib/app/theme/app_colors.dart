@@ -33,4 +33,10 @@ abstract final class AppColors {
   static const Color darkTextPrimary = Color(0xFFF5F7F5);
   static const Color darkTextSecondary = Color(0xFFC4D4C9);
   static const Color darkTextArabic = Color(0xFFF2F7F3);
+
+  // Ornamental gold for cartouches and verse medallions (reader reference,
+  // approved on request). Two steps of one hue so each step keeps contrast
+  // against its own surface.
+  static const Color gold = Color(0xFF8A6A1F);
+  static const Color darkGold = Color(0xFFD9B25F);
 }
